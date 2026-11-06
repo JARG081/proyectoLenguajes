@@ -1,0 +1,4 @@
+# Error de ejecución: aparece mientras el programa corre
+variable lista = [10, 20, 30]
+imprimir("Primer elemento:", lista[0])
+imprimir("Cuarto elemento:", lista[3])

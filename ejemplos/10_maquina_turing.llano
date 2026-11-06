@@ -1,0 +1,82 @@
+# Máquina de Turing que reconoce L = { aⁿbⁿ | n ≥ 1 }
+#
+# Idea: marca la primera 'a' con X, busca la primera 'b' y la marca con Y,
+# regresa y repite. Acepta si al final solo quedan X y Y.
+# Simular una MT en Llano muestra que el lenguaje es Turing completo.
+#
+# Cada regla es: [estado, lee, escribe, mueve, nuevo estado]
+# "_" es el símbolo blanco; D = derecha, I = izquierda.
+
+variable reglas = [
+    ["q0", "a", "X", "D", "q1"],
+    ["q0", "Y", "Y", "D", "q3"],
+    ["q1", "a", "a", "D", "q1"],
+    ["q1", "Y", "Y", "D", "q1"],
+    ["q1", "b", "Y", "I", "q2"],
+    ["q2", "a", "a", "I", "q2"],
+    ["q2", "Y", "Y", "I", "q2"],
+    ["q2", "X", "X", "D", "q0"],
+    ["q3", "Y", "Y", "D", "q3"],
+    ["q3", "_", "_", "D", "qa"]
+]
+
+funcion buscar_regla(estado, simbolo)
+    para i desde 0 hasta longitud(reglas) - 1 hacer
+        si reglas[i][0] == estado y reglas[i][1] == simbolo entonces
+            retornar reglas[i]
+        fin
+    fin
+    retornar nulo
+fin
+
+funcion cinta_texto(cinta, cabeza)
+    variable t = ""
+    para i desde 0 hasta longitud(cinta) - 1 hacer
+        si i == cabeza entonces
+            t = t + "[" + cinta[i] + "]"
+        sino
+            t = t + cinta[i]
+        fin
+    fin
+    retornar t
+fin
+
+funcion ejecutar_mt(w, mostrar)
+    variable cinta = []
+    para i desde 0 hasta longitud(w) - 1 hacer
+        agregar(cinta, w[i])
+    fin
+    agregar(cinta, "_")
+    variable cabeza = 0
+    variable estado = "q0"
+    variable pasos = 0
+    mientras estado != "qa" hacer
+        variable regla = buscar_regla(estado, cinta[cabeza])
+        si regla == nulo entonces
+            retornar falso          # no hay transición: la MT se detiene y rechaza
+        fin
+        si mostrar entonces
+            imprimir("   ", estado, cinta_texto(cinta, cabeza))
+        fin
+        cinta[cabeza] = regla[2]
+        si regla[3] == "D" entonces
+            cabeza = cabeza + 1
+            si cabeza == longitud(cinta) entonces
+                agregar(cinta, "_")
+            fin
+        sino
+            cabeza = cabeza - 1
+        fin
+        estado = regla[4]
+        pasos = pasos + 1
+    fin
+    retornar verdadero
+fin
+
+imprimir("Traza para w = aabb:")
+imprimir("Resultado:", ejecutar_mt("aabb", verdadero))
+imprimir("")
+variable pruebas = ["ab", "aaabbb", "aab", "abb", "ba", "abab"]
+para i desde 0 hasta longitud(pruebas) - 1 hacer
+    imprimir(pruebas[i], "->", ejecutar_mt(pruebas[i], falso))
+fin

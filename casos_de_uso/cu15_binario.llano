@@ -1,0 +1,27 @@
+# CU15 - Conversión entre decimal y binario
+funcion a_binario(n)
+    si n == 0 entonces
+        retornar "0"
+    fin
+    variable r = ""
+    mientras n > 0 hacer
+        r = texto(n % 2) + r
+        n = entero(n / 2)
+    fin
+    retornar r
+fin
+
+funcion a_decimal(b)
+    variable valor = 0
+    para i desde 0 hasta longitud(b) - 1 hacer
+        valor = valor * 2 + numero(b[i])
+    fin
+    retornar valor
+fin
+
+para n desde 0 hasta 10 paso 5 hacer
+    imprimir(n, "->", a_binario(n))
+fin
+imprimir(255, "->", a_binario(255))
+imprimir("101101 ->", a_decimal("101101"))
+imprimir("Ida y vuelta 2026:", a_decimal(a_binario(2026)))

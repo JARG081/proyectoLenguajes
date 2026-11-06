@@ -1,0 +1,18 @@
+# CU07 - ¿La frase es un palíndromo? Se ignoran los espacios
+funcion sin_espacios(t)
+    variable r = ""
+    para i desde 0 hasta longitud(t) - 1 hacer
+        si t[i] != " " entonces
+            r = r + t[i]
+        fin
+    fin
+    retornar r
+fin
+
+variable frase = leer("Frase en minúsculas: ")
+variable limpia = sin_espacios(frase)
+si limpia == invertir(limpia) entonces
+    imprimir("\"" + frase + "\" es un palíndromo")
+sino
+    imprimir("\"" + frase + "\" no es un palíndromo")
+fin

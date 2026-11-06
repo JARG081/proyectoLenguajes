@@ -1,0 +1,4 @@
+# Error de sintaxis: falta el 'fin' que cierra el 'si'
+variable x = 10
+si x > 5 entonces
+    imprimir("x es mayor que 5")

@@ -1,0 +1,12 @@
+# CU05 - FizzBuzz del 1 al 15
+para i desde 1 hasta 15 hacer
+    si i % 15 == 0 entonces
+        imprimir("FizzBuzz")
+    sino si i % 3 == 0 entonces
+        imprimir("Fizz")
+    sino si i % 5 == 0 entonces
+        imprimir("Buzz")
+    sino
+        imprimir(i)
+    fin
+fin

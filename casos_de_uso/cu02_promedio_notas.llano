@@ -1,0 +1,17 @@
+# CU02 - Promedio de notas: leer n notas, calcular promedio y decidir si aprueba
+variable n = numero(leer("¿Cuántas notas? "))
+variable suma = 0
+para i desde 1 hasta n hacer
+    variable nota = numero(leer("Nota " + i + ": "))
+    mientras nota < 0 o nota > 5 hacer
+        nota = numero(leer("La nota debe estar entre 0 y 5. Nota " + i + ": "))
+    fin
+    suma = suma + nota
+fin
+variable promedio = suma / n
+imprimir("Promedio:", redondear(promedio, 2))
+si promedio >= 3 entonces
+    imprimir("Resultado: aprobó")
+sino
+    imprimir("Resultado: reprobó")
+fin

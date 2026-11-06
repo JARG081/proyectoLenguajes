@@ -1,0 +1,27 @@
+# Condicionales: si / sino si / sino
+
+funcion calificar(nota)
+    si nota < 0 o nota > 5 entonces
+        retornar "nota inválida"
+    sino si nota >= 4.5 entonces
+        retornar "excelente"
+    sino si nota >= 3 entonces
+        retornar "aprobado"
+    sino
+        retornar "reprobado"
+    fin
+fin
+
+variable notas = [4.8, 3.2, 2.9, 5.5]
+para i desde 0 hasta longitud(notas) - 1 hacer
+    imprimir("Nota", notas[i], "->", calificar(notas[i]))
+fin
+
+# Operadores lógicos: y, o, no
+variable a = 7
+si a > 0 y a % 2 == 1 entonces
+    imprimir(a, "es positivo e impar")
+fin
+si no (a == 0) entonces
+    imprimir(a, "es diferente de cero")
+fin

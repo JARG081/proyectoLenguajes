@@ -1,0 +1,8 @@
+# Errores semánticos: se detectan TODOS antes de ejecutar
+variable total = 0
+totl = total + 1
+imprimir(promedio(total))
+funcion doble(n)
+    retornar n * 2
+fin
+imprimir(doble(1, 2))

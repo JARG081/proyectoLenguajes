@@ -1,0 +1,4 @@
+# CU01 - Saludo personalizado: leer un dato y responder
+variable nombre = leer("¿Cómo te llamas? ")
+imprimir("Hola, " + nombre + ". Bienvenido a Llano.")
+imprimir("Tu nombre tiene", longitud(nombre), "letras.")

@@ -1,0 +1,57 @@
+# Unidad 1: alfabetos, cadenas y operaciones con cadenas
+
+variable u = "ab"
+variable v = "ba"
+
+# Longitud |w|
+imprimir("|u| =", longitud(u))
+imprimir("|λ| =", longitud(""))
+
+# Concatenación: no es conmutativa
+imprimir("uv =", u + v, "  vu =", v + u, "  ¿uv == vu?", u + v == v + u)
+
+# Potencia de una cadena: u^3 = uuu, u^0 = λ
+imprimir("u³ =", u * 3)
+imprimir("u⁰ = \"" + u * 0 + "\" (la cadena vacía)")
+
+# Reflexión (inversa) y su propiedad (uv)⁻¹ = v⁻¹u⁻¹
+imprimir("(uv)⁻¹ =", invertir(u + v), "  v⁻¹u⁻¹ =", invertir(v) + invertir(u))
+
+# Palíndromos: w = w⁻¹
+funcion es_palindromo(w)
+    retornar w == invertir(w)
+fin
+variable palabras = ["reconocer", "anilina", "llano", "abba", ""]
+para i desde 0 hasta longitud(palabras) - 1 hacer
+    imprimir("\"" + palabras[i] + "\"", "¿palíndromo?", es_palindromo(palabras[i]))
+fin
+
+# Prefijos y sufijos de w = "abc"
+variable w = "abc"
+variable prefijos = []
+variable sufijos = []
+para k desde 0 hasta longitud(w) hacer
+    agregar(prefijos, subcadena(w, 0, k))
+    agregar(sufijos, subcadena(w, k))
+fin
+imprimir("Prefijos de abc:", prefijos)
+imprimir("Sufijos de abc:", sufijos)
+
+# Σᵏ: todas las cadenas de longitud k sobre el alfabeto Σ = {a, b}
+funcion sigma_k(alfabeto, k)
+    variable resultado = [""]
+    para paso_actual desde 1 hasta k hacer
+        variable nuevas = []
+        para i desde 0 hasta longitud(resultado) - 1 hacer
+            para j desde 0 hasta longitud(alfabeto) - 1 hacer
+                agregar(nuevas, resultado[i] + alfabeto[j])
+            fin
+        fin
+        resultado = nuevas
+    fin
+    retornar resultado
+fin
+
+variable sigma3 = sigma_k(["a", "b"], 3)
+imprimir("Σ³ =", sigma3)
+imprimir("|Σ³| =", longitud(sigma3), "= 2³")

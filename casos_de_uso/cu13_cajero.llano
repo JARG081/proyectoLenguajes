@@ -1,0 +1,25 @@
+# CU13 - Cajero automático: menú con validación de saldo
+variable saldo = 100000
+variable opcion = ""
+mientras opcion != "4" hacer
+    imprimir("1) Consultar  2) Consignar  3) Retirar  4) Salir")
+    opcion = leer("Opción: ")
+    si opcion == "1" entonces
+        imprimir("Saldo: $" + saldo)
+    sino si opcion == "2" entonces
+        variable valor = numero(leer("Valor a consignar: "))
+        saldo = saldo + valor
+        imprimir("Nuevo saldo: $" + saldo)
+    sino si opcion == "3" entonces
+        variable valor = numero(leer("Valor a retirar: "))
+        si valor > saldo entonces
+            imprimir("Fondos insuficientes")
+        sino
+            saldo = saldo - valor
+            imprimir("Nuevo saldo: $" + saldo)
+        fin
+    sino si opcion != "4" entonces
+        imprimir("Opción inválida")
+    fin
+fin
+imprimir("Gracias por usar el cajero")

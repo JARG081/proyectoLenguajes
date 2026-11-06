@@ -1,0 +1,20 @@
+# CU06 - Contar vocales (con y sin tilde) en una frase leída
+variable frase = leer("Escribe una frase: ")
+variable vocales = "aeiouáéíóúAEIOUÁÉÍÓÚ"
+
+funcion contiene(texto_, caracter)
+    para i desde 0 hasta longitud(texto_) - 1 hacer
+        si texto_[i] == caracter entonces
+            retornar verdadero
+        fin
+    fin
+    retornar falso
+fin
+
+variable cuenta = 0
+para i desde 0 hasta longitud(frase) - 1 hacer
+    si contiene(vocales, frase[i]) entonces
+        cuenta = cuenta + 1
+    fin
+fin
+imprimir("La frase tiene", cuenta, "vocales")

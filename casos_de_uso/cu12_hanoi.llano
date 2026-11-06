@@ -1,0 +1,15 @@
+# CU12 - Torres de Hanói con recursión
+variable movimientos = 0
+
+funcion hanoi(n, origen, destino, auxiliar)
+    si n == 0 entonces
+        retornar nulo
+    fin
+    hanoi(n - 1, origen, auxiliar, destino)
+    movimientos = movimientos + 1
+    imprimir("Mover disco", n, "de", origen, "a", destino)
+    hanoi(n - 1, auxiliar, destino, origen)
+fin
+
+hanoi(3, "A", "C", "B")
+imprimir("Total de movimientos:", movimientos, "= 2³ - 1")

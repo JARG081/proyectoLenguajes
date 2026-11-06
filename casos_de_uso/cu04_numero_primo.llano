@@ -1,0 +1,25 @@
+# CU04 - ¿Es primo? El usuario escribe números hasta escribir 0
+funcion es_primo(n)
+    si n < 2 entonces
+        retornar falso
+    fin
+    variable d = 2
+    mientras d * d <= n hacer
+        si n % d == 0 entonces
+            retornar falso
+        fin
+        d = d + 1
+    fin
+    retornar verdadero
+fin
+
+variable n = numero(leer("Número (0 para salir): "))
+mientras n != 0 hacer
+    si es_primo(n) entonces
+        imprimir(n, "es primo")
+    sino
+        imprimir(n, "no es primo")
+    fin
+    n = numero(leer("Número (0 para salir): "))
+fin
+imprimir("Adiós")

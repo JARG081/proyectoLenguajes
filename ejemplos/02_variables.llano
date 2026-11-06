@@ -1,0 +1,31 @@
+# Variables, tipos y operaciones aritméticas
+
+variable nombre = "Ana"
+variable edad = 20
+variable estatura = 1.65
+variable estudiante = verdadero
+variable nada = nulo
+
+imprimir("Nombre:", nombre, "- tipo:", tipo(nombre))
+imprimir("Edad:", edad, "- tipo:", tipo(edad))
+imprimir("Estatura:", estatura)
+imprimir("¿Estudiante?", estudiante, "- tipo:", tipo(estudiante))
+imprimir("Nada:", nada)
+
+# Operadores: + - * / % ^   (la potencia ^ se agrupa a la derecha)
+imprimir("7 + 2 =", 7 + 2)
+imprimir("7 - 2 =", 7 - 2)
+imprimir("7 * 2 =", 7 * 2)
+imprimir("7 / 2 =", 7 / 2)
+imprimir("8 / 2 =", 8 / 2)
+imprimir("7 % 2 =", 7 % 2)
+imprimir("2 ^ 10 =", 2 ^ 10)
+imprimir("2 ^ 3 ^ 2 =", 2 ^ 3 ^ 2, "(es 2 ^ 9)")
+
+# La precedencia está codificada en la gramática:
+imprimir("2 + 3 * 4 =", 2 + 3 * 4)
+imprimir("(2 + 3) * 4 =", (2 + 3) * 4)
+
+# Asignar es cambiar el valor de una variable ya declarada
+edad = edad + 1
+imprimir(nombre + " cumplió " + edad + " años")

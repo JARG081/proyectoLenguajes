@@ -1,0 +1,2 @@
+# Error léxico: '@' no pertenece al alfabeto del lenguaje
+variable correo = 5 @ 3

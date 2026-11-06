@@ -1,0 +1,30 @@
+# CU08 - Lista de compras: agregar, quitar y totalizar
+variable productos = []
+variable precios = []
+
+funcion agregar_producto(nombre, precio)
+    agregar(productos, nombre)
+    agregar(precios, precio)
+fin
+
+funcion total()
+    variable t = 0
+    para i desde 0 hasta longitud(precios) - 1 hacer
+        t = t + precios[i]
+    fin
+    retornar t
+fin
+
+agregar_producto("arroz", 4200)
+agregar_producto("leche", 3800)
+agregar_producto("pan", 2500)
+agregar_producto("café", 12900)
+imprimir("Productos:", productos)
+imprimir("Total: $" + total())
+
+# Se arrepiente del café (posición 3)
+variable quitado = quitar(productos, 3)
+quitar(precios, 3)
+imprimir("Se quitó:", quitado)
+imprimir("Productos:", productos)
+imprimir("Total: $" + total())

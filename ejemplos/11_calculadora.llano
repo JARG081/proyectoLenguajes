@@ -1,0 +1,31 @@
+# Programa interactivo: lee datos del teclado con leer()
+
+imprimir("Calculadora de Llano (escribe 'fin' como operación para salir)")
+variable seguir = verdadero
+mientras seguir hacer
+    variable op = leer("Operación (+, -, *, /, ^): ")
+    si op == "fin" entonces
+        seguir = falso
+    sino
+        variable a = numero(leer("Primer número: "))
+        variable b = numero(leer("Segundo número: "))
+        si op == "+" entonces
+            imprimir("Resultado:", a + b)
+        sino si op == "-" entonces
+            imprimir("Resultado:", a - b)
+        sino si op == "*" entonces
+            imprimir("Resultado:", a * b)
+        sino si op == "/" entonces
+            si b == 0 entonces
+                imprimir("No se puede dividir entre cero")
+            sino
+                imprimir("Resultado:", a / b)
+            fin
+        sino si op == "^" entonces
+            imprimir("Resultado:", a ^ b)
+        sino
+            imprimir("Operación desconocida:", op)
+        fin
+    fin
+fin
+imprimir("¡Hasta luego!")

@@ -1,0 +1,33 @@
+# Ciclos: mientras y para
+
+# Tabla de multiplicar con 'para' (los límites se incluyen)
+variable n = 7
+para i desde 1 hasta 10 hacer
+    imprimir(n, "x", i, "=", n * i)
+fin
+
+# Cuenta regresiva con paso negativo
+variable cuenta = ""
+para i desde 10 hasta 0 paso -2 hacer
+    cuenta = cuenta + i + " "
+fin
+imprimir("Cuenta regresiva:", cuenta)
+
+# Suma de 1 a 100 con 'mientras'
+variable suma = 0
+variable k = 1
+mientras k <= 100 hacer
+    suma = suma + k
+    k = k + 1
+fin
+imprimir("1 + 2 + ... + 100 =", suma)
+
+# Algoritmo de Euclides para el máximo común divisor
+variable a = 1071
+variable b = 462
+mientras b != 0 hacer
+    variable r = a % b
+    a = b
+    b = r
+fin
+imprimir("mcd(1071, 462) =", a)

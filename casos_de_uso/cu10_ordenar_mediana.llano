@@ -1,0 +1,28 @@
+# CU10 - Ordenamiento por selección, mediana y moda de unas edades
+funcion ordenar(l)
+    para i desde 0 hasta longitud(l) - 2 hacer
+        variable menor = i
+        para j desde i + 1 hasta longitud(l) - 1 hacer
+            si l[j] < l[menor] entonces
+                menor = j
+            fin
+        fin
+        variable t = l[i]
+        l[i] = l[menor]
+        l[menor] = t
+    fin
+    retornar l
+fin
+
+funcion mediana(l)
+    variable n = longitud(l)
+    si n % 2 == 1 entonces
+        retornar l[entero(n / 2)]
+    fin
+    retornar (l[n / 2 - 1] + l[n / 2]) / 2
+fin
+
+variable edades = ordenar([19, 21, 18, 22, 19, 20, 25, 19])
+imprimir("Ordenadas:", edades)
+imprimir("Mediana:", mediana(edades))
+imprimir("Mínima:", edades[0], "- Máxima:", edades[longitud(edades) - 1])

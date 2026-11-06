@@ -1,0 +1,44 @@
+# CU14 - ¿Es un identificador válido de Llano? Se usa el AFD de ID:
+#   q0 --letra--> q1,  q1 --letra|dígito--> q1,  F = {q1}
+# (las palabras reservadas se revisan aparte, como hace el analizador léxico)
+variable letras = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_áéíóúÁÉÍÓÚñÑüÜ"
+variable digitos = "0123456789"
+variable reservadas = ["variable", "si", "entonces", "sino", "fin", "mientras", "hacer",
+                       "para", "desde", "hasta", "paso", "funcion", "retornar",
+                       "verdadero", "falso", "nulo", "y", "o", "no"]
+
+funcion pertenece(c, conjunto)
+    para i desde 0 hasta longitud(conjunto) - 1 hacer
+        si conjunto[i] == c entonces
+            retornar verdadero
+        fin
+    fin
+    retornar falso
+fin
+
+funcion afd_id(w)
+    variable estado = "q0"
+    para i desde 0 hasta longitud(w) - 1 hacer
+        variable c = w[i]
+        si estado == "q0" y pertenece(c, letras) entonces
+            estado = "q1"
+        sino si estado == "q1" y (pertenece(c, letras) o pertenece(c, digitos)) entonces
+            estado = "q1"
+        sino
+            retornar falso          # estado sumidero
+        fin
+    fin
+    retornar estado == "q1"
+fin
+
+variable w = leer("Cadena: ")
+mientras w != "" hacer
+    si no afd_id(w) entonces
+        imprimir("  '" + w + "' NO es un identificador")
+    sino si pertenece(w, reservadas) entonces
+        imprimir("  '" + w + "' es una palabra reservada")
+    sino
+        imprimir("  '" + w + "' es un identificador válido")
+    fin
+    w = leer("Cadena: ")
+fin

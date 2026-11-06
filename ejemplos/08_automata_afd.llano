@@ -1,0 +1,56 @@
+# Unidad 2: simulación de un autómata finito determinista (AFD)
+#
+# M = (Q, Σ, δ, q0, F) que acepta las cadenas binarias con una
+# cantidad par de unos.
+#   Q = {q0, q1}   Σ = {0, 1}   q0 inicial   F = {q0}
+#
+#   δ    |  0   1
+#   q0   |  q0  q1
+#   q1   |  q1  q0
+
+variable estados = ["q0", "q1"]
+variable alfabeto = ["0", "1"]
+variable delta = [[0, 1],      # fila = estado actual, columna = símbolo
+                  [1, 0]]
+variable inicial = 0
+variable finales = [verdadero, falso]
+
+funcion posicion_simbolo(simbolo)
+    para i desde 0 hasta longitud(alfabeto) - 1 hacer
+        si alfabeto[i] == simbolo entonces
+            retornar i
+        fin
+    fin
+    retornar -1
+fin
+
+funcion acepta(w)
+    variable q = inicial
+    variable recorrido = estados[q]
+    para i desde 0 hasta longitud(w) - 1 hacer
+        variable s = posicion_simbolo(w[i])
+        si s == -1 entonces
+            imprimir("  el símbolo", w[i], "no pertenece a Σ")
+            retornar falso
+        fin
+        q = delta[q][s]
+        recorrido = recorrido + " -" + w[i] + "-> " + estados[q]
+    fin
+    imprimir("  " + recorrido)
+    retornar finales[q]
+fin
+
+variable pruebas = ["", "1", "11", "1011", "0110", "10101"]
+para i desde 0 hasta longitud(pruebas) - 1 hacer
+    variable w = pruebas[i]
+    si w == "" entonces
+        imprimir("w = λ")
+    sino
+        imprimir("w =", w)
+    fin
+    si acepta(w) entonces
+        imprimir("  ACEPTADA")
+    sino
+        imprimir("  RECHAZADA")
+    fin
+fin

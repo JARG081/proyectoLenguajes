@@ -1,0 +1,3 @@
+# Primer programa en Llano
+imprimir("¡Hola, mundo!")
+imprimir("Llano es un lenguaje de programación en español.")

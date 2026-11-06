@@ -1,0 +1,9 @@
+# CU03 - Tabla de conversión de grados Celsius a Fahrenheit
+funcion a_fahrenheit(c)
+    retornar c * 9 / 5 + 32
+fin
+
+imprimir("Celsius  Fahrenheit")
+para c desde -10 hasta 40 paso 10 hacer
+    imprimir(c, "->", a_fahrenheit(c))
+fin

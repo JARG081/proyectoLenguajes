@@ -1,0 +1,61 @@
+# Funciones y recursión
+
+funcion factorial(n)
+    si n <= 1 entonces
+        retornar 1
+    fin
+    retornar n * factorial(n - 1)
+fin
+
+funcion fibonacci(n)
+    si n < 2 entonces
+        retornar n
+    fin
+    retornar fibonacci(n - 1) + fibonacci(n - 2)
+fin
+
+funcion es_primo(n)
+    si n < 2 entonces
+        retornar falso
+    fin
+    variable d = 2
+    mientras d * d <= n hacer
+        si n % d == 0 entonces
+            retornar falso
+        fin
+        d = d + 1
+    fin
+    retornar verdadero
+fin
+
+imprimir("10! =", factorial(10))
+imprimir("25! =", factorial(25))
+
+variable serie = []
+para i desde 0 hasta 15 hacer
+    agregar(serie, fibonacci(i))
+fin
+imprimir("Fibonacci:", serie)
+
+variable primos = []
+para i desde 1 hasta 50 hacer
+    si es_primo(i) entonces
+        agregar(primos, i)
+    fin
+fin
+imprimir("Primos hasta 50:", primos)
+
+# Las funciones son valores: se pueden pasar como argumento
+funcion aplicar(f, lista)
+    variable resultado = []
+    para i desde 0 hasta longitud(lista) - 1 hacer
+        agregar(resultado, f(lista[i]))
+    fin
+    retornar resultado
+fin
+
+funcion cuadrado(x)
+    retornar x * x
+fin
+
+imprimir("Cuadrados:", aplicar(cuadrado, [1, 2, 3, 4, 5]))

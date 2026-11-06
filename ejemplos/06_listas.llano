@@ -1,0 +1,45 @@
+# Listas: promedio, máximo y ordenamiento por burbuja
+
+variable datos = [34, 7, 23, 32, 5, 62, 14]
+imprimir("Datos:", datos, "- cantidad:", longitud(datos))
+
+funcion promedio(lista)
+    variable suma = 0
+    para i desde 0 hasta longitud(lista) - 1 hacer
+        suma = suma + lista[i]
+    fin
+    retornar suma / longitud(lista)
+fin
+
+funcion maximo(lista)
+    variable mayor = lista[0]
+    para i desde 1 hasta longitud(lista) - 1 hacer
+        si lista[i] > mayor entonces
+            mayor = lista[i]
+        fin
+    fin
+    retornar mayor
+fin
+
+funcion ordenar(lista)
+    variable n = longitud(lista)
+    para i desde 0 hasta n - 2 hacer
+        para j desde 0 hasta n - 2 - i hacer
+            si lista[j] > lista[j + 1] entonces
+                variable temporal = lista[j]
+                lista[j] = lista[j + 1]
+                lista[j + 1] = temporal
+            fin
+        fin
+    fin
+    retornar lista
+fin
+
+imprimir("Promedio:", redondear(promedio(datos), 2))
+imprimir("Máximo:", maximo(datos))
+imprimir("Ordenados:", ordenar(datos))
+
+# Matriz como lista de listas
+variable matriz = [[1, 2, 3], [4, 5, 6]]
+matriz[1][2] = 60
+imprimir("Matriz:", matriz, "- elemento [1][2]:", matriz[1][2])

@@ -1,0 +1,39 @@
+# Unidad 2: autómatas traductores (máquinas de Mealy y de Moore)
+#
+# Ejemplo de clase: traducir cadenas de {0,1}* a cadenas de {a,b}*
+# generando 'b' si la cantidad de unos leídos hasta ahora es impar
+# y 'a' si es par.
+
+# Máquina de Mealy: la salida va en la transición. γ(q, símbolo)
+variable delta = [[0, 1], [1, 0]]
+variable salida_mealy = [["a", "b"], ["b", "a"]]
+
+funcion traducir_mealy(w)
+    variable q = 0
+    variable salida = ""
+    para i desde 0 hasta longitud(w) - 1 hacer
+        variable s = numero(w[i])
+        salida = salida + salida_mealy[q][s]
+        q = delta[q][s]
+    fin
+    retornar salida
+fin
+
+# Máquina de Moore: la salida va en el estado al que se llega. γ(q)
+variable salida_moore = ["a", "b"]
+
+funcion traducir_moore(w)
+    variable q = 0
+    variable salida = ""
+    para i desde 0 hasta longitud(w) - 1 hacer
+        q = delta[q][numero(w[i])]
+        salida = salida + salida_moore[q]
+    fin
+    retornar salida
+fin
+
+variable entradas = ["0", "1", "0110", "1101", "111000"]
+para i desde 0 hasta longitud(entradas) - 1 hacer
+    variable w = entradas[i]
+    imprimir(w, "-> Mealy:", traducir_mealy(w), " Moore:", traducir_moore(w))
+fin

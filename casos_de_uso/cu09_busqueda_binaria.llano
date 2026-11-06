@@ -1,0 +1,26 @@
+# CU09 - Búsqueda binaria en una lista ordenada
+funcion buscar(lista, objetivo)
+    variable izq = 0
+    variable der = longitud(lista) - 1
+    variable pasos = 0
+    mientras izq <= der hacer
+        pasos = pasos + 1
+        variable medio = entero((izq + der) / 2)
+        si lista[medio] == objetivo entonces
+            imprimir("  encontrado en", pasos, "pasos")
+            retornar medio
+        sino si lista[medio] < objetivo entonces
+            izq = medio + 1
+        sino
+            der = medio - 1
+        fin
+    fin
+    imprimir("  no encontrado tras", pasos, "pasos")
+    retornar -1
+fin
+
+variable datos = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+imprimir("Buscar 23:")
+imprimir("  posición:", buscar(datos, 23))
+imprimir("Buscar 7:")
+imprimir("  posición:", buscar(datos, 7))

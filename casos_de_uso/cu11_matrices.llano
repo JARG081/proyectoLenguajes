@@ -1,0 +1,29 @@
+# CU11 - Suma y transpuesta de matrices (listas de listas)
+funcion sumar(a, b)
+    variable c = []
+    para i desde 0 hasta longitud(a) - 1 hacer
+        variable fila = []
+        para j desde 0 hasta longitud(a[0]) - 1 hacer
+            agregar(fila, a[i][j] + b[i][j])
+        fin
+        agregar(c, fila)
+    fin
+    retornar c
+fin
+
+funcion transpuesta(a)
+    variable t = []
+    para j desde 0 hasta longitud(a[0]) - 1 hacer
+        variable fila = []
+        para i desde 0 hasta longitud(a) - 1 hacer
+            agregar(fila, a[i][j])
+        fin
+        agregar(t, fila)
+    fin
+    retornar t
+fin
+
+variable a = [[1, 2, 3], [4, 5, 6]]
+variable b = [[10, 20, 30], [40, 50, 60]]
+imprimir("A + B =", sumar(a, b))
+imprimir("Aᵀ =", transpuesta(a))
