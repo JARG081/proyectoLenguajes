@@ -30,7 +30,7 @@ Abreviaturas: `L = [a-zA-Z_áéíóúÁÉÍÓÚñÑüÜ]`, `D = [0-9]`.
 
 | Token | Expresión regular | Ejemplos |
 |---|---|---|
-| Palabras reservadas | `variable`, `si`, `entonces`, `sino`, `fin`, `mientras`, `hacer`, `para`, `desde`, `hasta`, `paso`, `funcion`, `función`, `retornar`, `verdadero`, `falso`, `nulo`, `y`, `o`, `no` | `mientras` |
+| Palabras reservadas | `variable`, `si`, `entonces`, `sino`, `fin`, `mientras`, `hacer`, `para`, `desde`, `hasta`, `paso`, `funcion`, `función`, `retornar`, `romper`, `continuar`, `verdadero`, `falso`, `nulo`, `y`, `o`, `no` | `mientras` |
 | `ID` | `L (L ∪ D)*` | `x`, `total_2`, `año` |
 | `NUMERO` | `D⁺ (. D⁺ ∪ λ)` | `42`, `3.14` |
 | `TEXTO` | `" (c ∪ \x)* "`, con c ≠ `"`, `\`, salto de línea | `"hola"`, `"dijo \"sí\""` |
@@ -87,7 +87,7 @@ G = (V_N, V_T, P, S), donde:
 programa    → sentencia* EOF
 bloque      → sentencia*
 sentencia   → declaracion | asignacion | condicional | mientras | para
-            | funcion | retorno | expresion
+            | funcion | retorno | romper | continuar | expresion
 
 declaracion → 'variable' ID ( '=' expresion )?
 asignacion  → ID indice* '=' expresion
@@ -101,6 +101,8 @@ para        → 'para' ID 'desde' expresion 'hasta' expresion ( 'paso' expresion
 funcion     → 'funcion' ID '(' parametros? ')' bloque 'fin'
 parametros  → ID ( ',' ID )*
 retorno     → 'retornar' expresion
+romper      → 'romper'
+continuar   → 'continuar'
 
 expresion   → disyuncion
 disyuncion  → conjuncion ( 'o' conjuncion )*
@@ -188,6 +190,22 @@ Reglas que revisa:
 | No se asigna a una función ni se redefine una predefinida | `'f' es una función; no se le puede asignar un valor` |
 | `retornar` solo aparece dentro de una función | `'retornar' solo puede usarse dentro de una función` |
 | Una llamada a una función conocida usa la cantidad correcta de argumentos | `'f' recibe 2 argumentos, pero se le pasaron 1` |
+| `romper` y `continuar` solo aparecen dentro de un ciclo (sin cruzar el límite de una función) | `'romper' solo puede usarse dentro de un ciclo (mientras o para)` |
+| Un `mientras` con condición constante verdadera tiene `romper` o `retornar` | `ciclo infinito: la condición del 'mientras' siempre es verdadera y el ciclo no tiene 'romper' ni 'retornar' para salir` |
+| El `paso` constante de un `para` no es 0 | `ciclo infinito: el 'paso' no puede ser 0` |
+| Una condición constante de `si` o `mientras` es lógica | `la condición del 'si' debe ser verdadero o falso, pero siempre vale 1` |
+| Una expresión constante cumple las restricciones matemáticas (sección 6.5) | `división por cero (detectado antes de ejecutar)` |
+
+**Expresiones constantes.** Una expresión que solo tiene literales, operadores y llamadas a funciones predefinidas puras (`raiz`, `logaritmo`, `absoluto`, `entero`, `redondear`, `numero`, `texto`, `longitud`, `invertir`, `subcadena`, `tipo`) tiene el mismo valor en toda ejecución. El analizador la evalúa durante la revisión (plegado de constantes) y así detecta antes de ejecutar errores como `1 / 0`, `raiz(-4)` o `"a" - 1`. Además, en `x / e` y `x % e`, si el divisor `e` es constante y vale 0, se informa el error aunque `x` dependa de variables.
+
+**Advertencias.** No detienen el programa; se muestran antes de ejecutarlo:
+
+| Situación | Advertencia |
+|---|---|
+| La condición de un `mientras` no tiene llamadas, ninguna de sus variables se modifica en el cuerpo (ni por asignación ni con `agregar`/`quitar`), el cuerpo no llama a funciones del usuario y no hay `romper` ni `retornar` | `posible ciclo infinito: ninguna variable de la condición ('i') cambia dentro del ciclo` |
+| La condición de un `mientras` es constante y falsa | `la condición del 'mientras' siempre es falsa: el ciclo nunca se ejecuta` |
+
+Es una advertencia y no un error porque, si la condición es falsa desde el inicio, el ciclo simplemente no se ejecuta.
 
 Detalles:
 
@@ -231,6 +249,16 @@ Llano tiene **tipado dinámico**: los tipos se revisan al ejecutar. También es 
 
 Las condiciones de `si` y `mientras` deben ser de tipo lógico. Así se evitan errores como confundir `=` con `==`.
 
+### 6.2.1 Salidas de los ciclos
+
+| Sentencia | Efecto |
+|---|---|
+| `romper` | Termina el ciclo más interno que la contiene; la ejecución sigue después de su `fin` |
+| `continuar` | Termina la vuelta actual del ciclo más interno. En un `mientras` se vuelve a evaluar la condición; en un `para` la variable avanza con el `paso` |
+| `retornar e` | Termina la función, y con ella todos los ciclos en curso dentro de ella |
+
+Se implementan como excepciones internas del intérprete (igual que `retornar`): el ciclo las captura y decide si sale o continúa.
+
 ### 6.3 Funciones
 
 - Los parámetros se pasan por valor. Las listas se comparten (como en Python o Java).
@@ -254,7 +282,29 @@ Las condiciones de `si` y `mientras` deben ser de tipo lógico. Así se evitan e
 | `invertir(x)` | Reflexión w⁻¹ de un texto, o lista invertida |
 | `subcadena(t, i, j?)` | Subcadena con las posiciones de i a j − 1 |
 | `tipo(v)` | Nombre del tipo |
-| `raiz(x)`, `absoluto(x)`, `redondear(x, d?)`, `aleatorio(a, b)` | Matemáticas (`redondear` usa el redondeo escolar: 2.5 → 3) |
+| `raiz(x)`, `logaritmo(x, b?)`, `absoluto(x)`, `redondear(x, d?)`, `aleatorio(a, b)` | Matemáticas (`logaritmo` sin base es el natural; `redondear` usa el redondeo escolar: 2.5 → 3) |
+
+### 6.5 Restricciones lógicas y matemáticas
+
+Cada operación revisa su dominio antes de calcular. Si no se cumple, se produce un error de ejecución (o semántico, si la expresión es constante):
+
+| Operación | Restricción | Mensaje |
+|---|---|---|
+| `a / b`, `a % b` | b ≠ 0 | `división por cero`, `módulo por cero` |
+| `a ^ b` | si a = 0, b ≥ 0; si a < 0, b entero; \|b\| ≤ 10 000 cuando \|a\| > 1 | `0 elevado a un exponente negativo`, `una base negativa solo admite exponentes enteros`, `el resultado es demasiado grande` |
+| `raiz(x)` | x ≥ 0 | `no existe la raíz cuadrada real de un número negativo` |
+| `logaritmo(x, b)` | x > 0; b > 0 y b ≠ 1 | `el logaritmo solo existe para números mayores que 0` |
+| `redondear(x, d)` | d entero, −15 ≤ d ≤ 15 | `la cantidad de decimales debe estar entre -15 y 15` |
+| `aleatorio(a, b)` | a ≤ b, enteros | `a debe ser menor o igual que b` |
+| Todo resultado real | finito (ni infinito ni indeterminado) | `el resultado es demasiado grande para representarse (desbordamiento)` |
+| Todo resultado entero | a lo sumo 1 000 000 de cifras | `el número entero es demasiado grande` |
+| `t * n` | n ≥ 0 y \|t\|·n ≤ 10 000 000 | `el texto resultante es demasiado grande` |
+| `y`, `o`, `no`, condiciones | operandos lógicos | `necesita valores lógicos` |
+| `< > <= >=` | ambos números o ambos textos | `no se puede comparar número con texto` |
+
+### 6.6 Manejo de errores
+
+El intérprete está escrito en Python, pero ningún error de Python llega al usuario. Cada sentencia se ejecuta dentro de un manejador que convierte cualquier excepción no prevista (división por cero, desbordamiento, falta de memoria, recursión excesiva, …) en un error de Llano con mensaje en español y la línea y columna de la sentencia. La traza interna de Python solo se muestra con la opción `--depurar`, pensada para quien desarrolla el intérprete.
 
 ## 7. Relación con los contenidos del curso
 
@@ -273,11 +323,17 @@ Las condiciones de `si` y `mientras` deben ser de tipo lógico. Así se evitan e
 
 Llano es **Turing completo**. Tiene enteros sin límite, listas que crecen sin límite (la cinta), ciclos `mientras` que pueden no terminar y condicionales, así que puede simular cualquier máquina de Turing. El ejemplo `10_maquina_turing.llano` lo hace con una MT que reconoce { aⁿbⁿ | n ≥ 1 }.
 
-Una consecuencia es que el **problema de la parada** es indecidible para programas Llano: ningún análisis puede decidir, para todo programa, si terminará. Por eso el análisis semántico no intenta detectar ciclos infinitos. Solo revisa propiedades decidibles, como las declaraciones y la cantidad de argumentos.
+Una consecuencia es que el **problema de la parada** es indecidible para programas Llano: ningún análisis puede decidir, para todo programa, si terminará. Por eso Llano no promete detectar todos los ciclos infinitos. Combina tres defensas, cada una incompleta por separado:
+
+1. **Casos decidibles, en el análisis semántico.** `mientras verdadero` sin `romper` ni `retornar`, o `para … paso 0`, nunca terminan: es una propiedad que se revisa sin ejecutar. Son errores.
+2. **Heurística, en el análisis semántico.** Si ninguna variable de la condición cambia en el cuerpo, el ciclo no termina *si llega a entrar*. Como eso depende de los valores al ejecutar, es una advertencia y no un error. La heurística no detecta todos los casos, lo cual es inevitable (teorema de Rice).
+3. **Límite práctico, en la ejecución.** Ningún ciclo puede dar más de 1 000 000 de vueltas (configurable con `--max-iteraciones`). Esto no resuelve el problema de la parada: convierte al intérprete en un *decisor acotado* que responde "terminó" o "superó el límite", y un programa correcto que necesite más vueltas debe pedir un límite mayor. Con el límite activado, Llano deja de ser Turing completo en sentido estricto (como cualquier computador real con memoria finita); con `--max-iteraciones 0` vuelve a serlo.
+
+Además, `Ctrl+C` detiene la ejecución: el intérprete revisa en cada vuelta de un ciclo y en cada llamada si el usuario pidió detenerse.
 
 ## 9. Limitaciones conocidas
 
-- No hay `romper` ni `continuar` en los ciclos.
+- La detección estática de ciclos infinitos es parcial (sección 8). El límite de repeticiones es por ciclo, así que ciclos anidados pueden tardar mucho antes de detenerse (para eso está `Ctrl+C`).
 - No hay diccionarios ni registros; se usan listas.
 - Los textos no se pueden modificar por posición (`t[0] = "x"` es un error).
 - Los errores de tipo se detectan al ejecutar, no antes (tipado dinámico).

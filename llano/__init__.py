@@ -13,36 +13,42 @@ import threading
 
 from .analisis import analizar
 from .errores import ErrorLlano, ErroresLlano
-from .interprete import Interprete
+from .interprete import MAX_ITERACIONES, Interprete
 from .semantico import analizar_semantica
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Python 3.11+ limita los enteros a 4300 dígitos al convertirlos en texto;
 # Llano promete enteros sin límite (por ejemplo, 2000!), así que se quita.
 if hasattr(sys, "set_int_max_str_digits"):
     sys.set_int_max_str_digits(0)
-__all__ = ["ejecutar", "verificar", "ErrorLlano", "ErroresLlano", "Interprete"]
+__all__ = ["ejecutar", "verificar", "ErrorLlano", "ErroresLlano", "Interprete", "MAX_ITERACIONES"]
 
 
-def verificar(fuente):
+def verificar(fuente, advertencias=None):
     """Fases de análisis (léxica, sintáctica y semántica) sin ejecutar.
-    Lanza ErroresLlano si el programa tiene errores."""
+    Lanza ErroresLlano si el programa tiene errores. Las advertencias se
+    agregan a la lista 'advertencias' si se da."""
     resultado = analizar(fuente)
-    analizar_semantica(resultado.arbol)
+    analizar_semantica(resultado.arbol, advertencias=advertencias)
     return resultado
 
 
-def ejecutar(fuente, salida=print, entrada=input, interprete=None):
+def ejecutar(fuente, salida=print, entrada=input, interprete=None,
+             max_iteraciones=MAX_ITERACIONES, advertencias=None):
     """Analiza y ejecuta un programa. Lanza ErroresLlano o ErrorLlano."""
-    resultado = verificar(fuente)
-    interprete = interprete or Interprete(salida, entrada)
-    return con_pila_grande(lambda: interprete.visit(resultado.arbol))
+    resultado = verificar(fuente, advertencias)
+    interprete = interprete or Interprete(salida, entrada, max_iteraciones)
+    return con_pila_grande(lambda: interprete.visit(resultado.arbol), interprete.cancelar)
 
 
-def con_pila_grande(funcion):
+def con_pila_grande(funcion, al_interrumpir=None):
     """Ejecuta 'funcion' en un hilo con una pila amplia, para que los
-    programas recursivos no agoten la pila de Python."""
+    programas recursivos no agoten la pila de Python.
+
+    Si el usuario presiona Ctrl+C, se llama a 'al_interrumpir' para que el
+    intérprete detenga el ciclo o la recursión en curso, y se relanza
+    KeyboardInterrupt."""
     resultado, excepcion = [None], [None]
 
     def correr():
@@ -72,8 +78,14 @@ def con_pila_grande(funcion):
     finally:
         threading.stack_size(tam_anterior)
     try:
-        while hilo.is_alive():
-            hilo.join(0.1)
+        try:
+            while hilo.is_alive():
+                hilo.join(0.1)
+        except KeyboardInterrupt:
+            if al_interrumpir is not None:
+                al_interrumpir()          # el hilo se detiene en la próxima repetición
+                hilo.join(2)
+            raise
     finally:
         sys.setrecursionlimit(limite_anterior)
     if excepcion[0] is not None:

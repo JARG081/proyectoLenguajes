@@ -192,20 +192,156 @@ class PruebasEjecucion(unittest.TestCase):
         self.assertEqual(correr("variable n = numero(leer())\nimprimir(n * 2)", ["21"]), ["42"])
 
     def test_errores_de_ejecucion(self):
+        # Con variables, los valores solo se conocen al ejecutar.
         casos = {
-            "imprimir(1 / 0)": "división por cero",
-            "si 1 entonces fin": "debe ser verdadero o falso",
-            "imprimir([1][3])": "fuera de rango",
-            'imprimir("a" - 1)': "no se puede aplicar '-'",
+            "variable c = 0\nimprimir(1 / c)": "división por cero",
+            "variable c = 1\nsi c entonces fin": "debe ser verdadero o falso",
+            "variable l = [1]\nimprimir(l[3])": "fuera de rango",
+            'variable t = "a"\nimprimir(t - 1)': "no se puede aplicar '-'",
             "funcion f(n) retornar f(n) fin\nf(1)": "demasiadas llamadas",
-            'imprimir(numero("x"))': "no es un número válido",
-            "para i desde 1 hasta 3 paso 0 hacer fin": "no puede ser 0",
+            'variable t = "x"\nimprimir(numero(t))': "no es un número válido",
+            "variable p = 0\npara i desde 1 hasta 3 paso p hacer fin": "no puede ser 0",
         }
         for codigo, esperado in casos.items():
             with self.subTest(codigo=codigo):
                 fase, mensaje, _ = error_de(codigo)
                 self.assertEqual(fase, "ejecucion")
                 self.assertIn(esperado, mensaje)
+
+
+class PruebasCiclosYRestricciones(unittest.TestCase):
+    """Salidas de los ciclos, protección contra ciclos infinitos y
+    restricciones lógicas y matemáticas."""
+
+    def test_romper(self):
+        codigo = "variable n = 0\nmientras verdadero hacer\n n = n + 1\n si n == 4 entonces romper fin\nfin\nimprimir(n)"
+        self.assertEqual(correr(codigo), ["4"])
+
+    def test_romper_solo_sale_del_ciclo_interno(self):
+        codigo = ("para i desde 1 hasta 2 hacer\n para j desde 1 hasta 5 hacer\n"
+                  "  si j == 2 entonces romper fin\n  imprimir(i, j)\n fin\nfin")
+        self.assertEqual(correr(codigo), ["1 1", "2 1"])
+
+    def test_continuar_en_para_y_mientras(self):
+        self.assertEqual(correr("para i desde 1 hasta 5 hacer si i % 2 == 0 entonces continuar fin "
+                                "imprimir(i) fin"), ["1", "3", "5"])
+        codigo = ("variable i = 0\nmientras i < 5 hacer\n i = i + 1\n"
+                  " si i == 3 entonces continuar fin\n imprimir(i)\nfin")
+        self.assertEqual(correr(codigo), ["1", "2", "4", "5"])
+
+    def test_retornar_dentro_de_ciclo_infinito(self):
+        codigo = ("funcion primero_par(l)\n variable i = 0\n mientras verdadero hacer\n"
+                  "  si l[i] % 2 == 0 entonces retornar l[i] fin\n  i = i + 1\n fin\nfin\n"
+                  "imprimir(primero_par([3, 5, 8, 9]))")
+        self.assertEqual(correr(codigo), ["8"])
+
+    def test_romper_y_continuar_fuera_de_ciclo(self):
+        for codigo in ("romper", "continuar", "si verdadero entonces romper fin",
+                       "mientras falso hacer funcion f() romper fin fin"):
+            with self.subTest(codigo=codigo):
+                fase, mensaje, _ = error_de(codigo)
+                self.assertEqual(fase, "semantico")
+                self.assertIn("solo puede usarse dentro de un ciclo", mensaje)
+
+    def test_ciclos_infinitos_evidentes(self):
+        casos = {
+            "mientras verdadero hacer imprimir(1) fin": "ciclo infinito",
+            "mientras 1 < 2 hacer fin": "ciclo infinito",
+            "mientras no falso hacer para i desde 1 hasta 2 hacer romper fin fin": "ciclo infinito",
+            "para i desde 1 hasta 3 paso 0 hacer fin": "el 'paso' no puede ser 0",
+        }
+        for codigo, esperado in casos.items():
+            with self.subTest(codigo=codigo):
+                fase, mensaje, _ = error_de(codigo)
+                self.assertEqual(fase, "semantico")
+                self.assertIn(esperado, mensaje)
+
+    def test_limite_de_repeticiones(self):
+        salida = []
+        with self.assertRaises(ErrorLlano) as ctx:
+            ejecutar("variable i = 1\nmientras i > 0 hacer i = i + 1 fin", salida=salida.append,
+                     max_iteraciones=500)
+        self.assertEqual(ctx.exception.fase, "ejecucion")
+        self.assertIn("superó 500 repeticiones", ctx.exception.mensaje)
+        # 0 = sin límite
+        self.assertEqual(correr_con_limite("variable s = 0\npara i desde 1 hasta 2000 hacer s = s + 1 fin\n"
+                                           "imprimir(s)", 0), ["2000"])
+
+    def test_advertencias(self):
+        casos = {
+            "variable i = 0\nmientras i < 3 hacer imprimir(i) fin": "posible ciclo infinito",
+            "mientras falso hacer fin": "nunca se ejecuta",
+        }
+        for codigo, esperado in casos.items():
+            with self.subTest(codigo=codigo):
+                advertencias = []
+                verificar(codigo, advertencias)
+                self.assertEqual(len(advertencias), 1)
+                self.assertEqual(advertencias[0].fase, "advertencia")
+                self.assertIn(esperado, advertencias[0].mensaje)
+        sin_advertencia = [
+            "variable i = 0\nmientras i < 3 hacer i = i + 1 fin",
+            "variable l = [1]\nmientras longitud(l) < 3 hacer agregar(l, 1) fin",
+            "variable i = 0\nfuncion f() i = i + 1 fin\nmientras i < 3 hacer f() fin",
+        ]
+        for codigo in sin_advertencia:
+            with self.subTest(codigo=codigo):
+                advertencias = []
+                verificar(codigo, advertencias)
+                self.assertEqual(advertencias, [])
+
+    def test_errores_detectados_antes_de_ejecutar(self):
+        casos = {
+            "imprimir(1 / 0)": "división por cero",
+            "variable x = 5\nimprimir(x / (2 - 2))": "división por cero",
+            "variable x = 5\nimprimir(x % 0)": "módulo por cero",
+            "imprimir(raiz(-4))": "raíz cuadrada real de un número negativo",
+            "imprimir(0 ^ -1)": "0 elevado a un exponente negativo",
+            "si 1 entonces fin": "siempre vale 1",
+            'imprimir("a" - 1)': "no se puede aplicar '-'",
+        }
+        for codigo, esperado in casos.items():
+            with self.subTest(codigo=codigo):
+                fase, mensaje, _ = error_de(codigo)
+                self.assertEqual(fase, "semantico")
+                self.assertIn(esperado, mensaje)
+
+    def test_cortocircuito_constante_no_es_error(self):
+        self.assertEqual(correr("imprimir(falso y 1 / 0 == 1)"), ["falso"])
+
+    def test_restricciones_matematicas(self):
+        casos = {
+            "variable x = -9\nimprimir(raiz(x))": "raíz cuadrada real",
+            "variable x = 0\nimprimir(logaritmo(x))": "mayores que 0",
+            "variable b = 1\nimprimir(logaritmo(8, b))": "distinta de 1",
+            "variable x = 1.5\nimprimir(x ^ 5000)": "demasiado grande",
+            "variable x = 10 ^ 400\nimprimir(x * 0.5)": "demasiado grande",
+            "variable d = 99\nimprimir(redondear(3.14159, d))": "entre -15 y 15",
+            "variable x = 10 ^ 9000\nvariable z = x\npara i desde 1 hasta 200 hacer z = z * x fin":
+                "más de 1.000.000 cifras",
+        }
+        for codigo, esperado in casos.items():
+            with self.subTest(codigo=codigo):
+                fase, mensaje, _ = error_de(codigo)
+                self.assertIn(esperado, mensaje)
+
+    def test_logaritmo(self):
+        self.assertEqual(correr("imprimir(logaritmo(8, 2), logaritmo(1))"), ["3 0"])
+
+    def test_nunca_se_ve_un_error_de_python(self):
+        for codigo in ("variable x = 10 ^ 400\nimprimir(x / 3.5)",
+                       "variable x = 1.5\nimprimir(x ^ 3000)"):
+            with self.subTest(codigo=codigo):
+                fase, mensaje, _ = error_de(codigo)
+                self.assertEqual(fase, "ejecucion")
+                self.assertNotIn("Error:", mensaje)
+                self.assertNotIn("Overflow", mensaje)
+
+
+def correr_con_limite(codigo, limite):
+    salida = []
+    ejecutar(codigo, salida=salida.append, max_iteraciones=limite)
+    return salida
 
 
 class PruebasPistas(unittest.TestCase):

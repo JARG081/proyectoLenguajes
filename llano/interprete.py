@@ -4,9 +4,10 @@ Es un intérprete de recorrido de árbol (tree-walking): cada método
 visitX da el significado (semántica) de la regla X de la gramática.
 """
 
+import math
 import operator
 
-from .errores import ErrorLlano
+from .errores import ErrorLlano, mensaje_de_excepcion
 from .generado.LlanoParser import LlanoParser
 from .generado.LlanoVisitor import LlanoVisitor
 from .valores import (FalloNativo, Funcion, Nativa, a_texto, crear_nativas, es_entero,
@@ -15,6 +16,9 @@ from .valores import (FalloNativo, Funcion, Nativa, a_texto, crear_nativas, es_e
 MAX_EXPONENTE = 10_000
 MAX_PROFUNDIDAD = 3000
 MAX_TEXTO = 10_000_000
+MAX_ITERACIONES = 1_000_000       # repeticiones de un ciclo (0 = sin límite)
+MAX_CIFRAS = 1_000_000            # cifras de un número entero
+MAX_BITS = int(MAX_CIFRAS * 3.33)  # lo mismo medido en bits (barato de revisar)
 
 
 class Retorno(Exception):
@@ -23,6 +27,18 @@ class Retorno(Exception):
     def __init__(self, valor):
         super().__init__()
         self.valor = valor
+
+
+class Romper(Exception):
+    """Se usa para salir de un ciclo con 'romper'."""
+
+
+class Continuar(Exception):
+    """Se usa para saltar a la siguiente repetición con 'continuar'."""
+
+
+# Excepciones que son parte del lenguaje (no son errores de Python).
+CONTROL = (ErrorLlano, Retorno, Romper, Continuar, KeyboardInterrupt)
 
 
 class Entorno:
@@ -80,7 +96,9 @@ def _paso_directo(ctx):
 
 
 class Interprete(LlanoVisitor):
-    def __init__(self, salida=print, entrada=input):
+    def __init__(self, salida=print, entrada=input, max_iteraciones=MAX_ITERACIONES):
+        self.max_iteraciones = max_iteraciones
+        self.cancelado = False
         self.nativas = Entorno()
         self.nativas.valores.update(crear_nativas(salida, entrada))
         self.globales = Entorno(self.nativas)
@@ -110,6 +128,43 @@ class Interprete(LlanoVisitor):
         return metodo(destino)
 
     # -- utilidades ---------------------------------------------------
+
+    def cancelar(self):
+        """Pide detener la ejecución (Ctrl+C). Se revisa en cada repetición
+        de un ciclo y en cada llamada a función."""
+        self.cancelado = True
+
+    def revisar_cancelacion(self, ctx):
+        if self.cancelado:
+            self.cancelado = False
+            raise self.error(ctx, "ejecución interrumpida por el usuario")
+
+    def contar_repeticion(self, ctx, n, palabra):
+        """Salvaguarda contra ciclos infinitos: un ciclo no puede repetirse
+        más de max_iteraciones veces. (Decidir en general si un ciclo termina
+        es imposible: es el problema de la parada.)"""
+        self.revisar_cancelacion(ctx)
+        if self.max_iteraciones and n > self.max_iteraciones:
+            limite = f"{self.max_iteraciones:,}".replace(",", ".")
+            raise self.error(ctx, f"el ciclo '{palabra}' superó {limite} repeticiones y se detuvo "
+                                  f"porque parece infinito. Revisa que la condición llegue a ser "
+                                  f"falsa o usa 'romper' para salir (el límite se cambia con "
+                                  f"--max-iteraciones)")
+
+    def numero(self, ctx, n):
+        """Restricciones matemáticas sobre el resultado de una operación:
+        debe ser un número finito y de un tamaño razonable."""
+        if isinstance(n, float):
+            if math.isnan(n):
+                raise self.error(ctx, "el resultado no es un número (operación indeterminada)")
+            if math.isinf(n):
+                raise self.error(ctx, "el resultado es demasiado grande para representarse "
+                                      "(desbordamiento)")
+            return normalizar(n)
+        if isinstance(n, int) and not isinstance(n, bool) and n.bit_length() > MAX_BITS:
+            raise self.error(ctx, f"el número entero es demasiado grande (más de "
+                                  f"{MAX_CIFRAS:,} cifras)".replace(",", "."))
+        return n
 
     @staticmethod
     def error(ctx, mensaje):
@@ -147,7 +202,14 @@ class Interprete(LlanoVisitor):
             self.visit(f)
         ultimo = None
         for s in resto:
-            ultimo = self.visit(s)
+            try:
+                ultimo = self.visit(s)
+            except CONTROL:
+                raise
+            except Exception as e:  # noqa: BLE001 - se traduce a un error de Llano
+                # Un fallo de Python que el intérprete no previó: se informa
+                # en español, en la instrucción donde ocurrió.
+                raise self.error(s, mensaje_de_excepcion(e)) from e
         return ultimo
 
     # -- programa y sentencias ---------------------------------------
@@ -202,8 +264,16 @@ class Interprete(LlanoVisitor):
         return None
 
     def visitMientras(self, ctx):
+        n = 0
         while self.condicion(ctx.expresion(), "mientras"):
-            self.ejecutar_bloque(ctx.bloque())
+            n += 1
+            self.contar_repeticion(ctx, n, "mientras")
+            try:
+                self.ejecutar_bloque(ctx.bloque())
+            except Romper:
+                break
+            except Continuar:
+                continue
         return None
 
     def visitPara(self, ctx):
@@ -227,10 +297,17 @@ class Interprete(LlanoVisitor):
         destino = self.entorno.buscar_entorno(nombre)
         if destino is None or destino is self.nativas:
             destino = ciclo
-        i = inicio
+        i, n = inicio, 0
         while (i <= fin) if paso > 0 else (i >= fin):
+            n += 1
+            self.contar_repeticion(ctx, n, "para")
             destino.valores[nombre] = normalizar(i)
-            self.ejecutar_bloque(ctx.bloque(), Entorno(ciclo))
+            try:
+                self.ejecutar_bloque(ctx.bloque(), Entorno(ciclo))
+            except Romper:
+                break
+            except Continuar:
+                pass            # 'continuar' también avanza la variable del ciclo
             i += paso
         return None
 
@@ -242,6 +319,12 @@ class Interprete(LlanoVisitor):
 
     def visitRetorno(self, ctx):
         raise Retorno(self.visit(ctx.expresion()))
+
+    def visitRomper(self, ctx):
+        raise Romper()
+
+    def visitContinuar(self, ctx):
+        raise Continuar()
 
     # -- expresiones: operadores lógicos -------------------------------
 
@@ -308,7 +391,7 @@ class Interprete(LlanoVisitor):
 
     def sumar(self, ctx, op, a, b):
         if es_numero(a) and es_numero(b):
-            return normalizar(a + b if op == "+" else a - b)
+            return self.numero(ctx, a + b if op == "+" else a - b)
         if op == "+":
             if isinstance(a, str) or isinstance(b, str):
                 return a_texto(a) + a_texto(b)          # concatenación
@@ -338,21 +421,25 @@ class Interprete(LlanoVisitor):
         if not (es_numero(a) and es_numero(b)):
             raise self.error(ctx, f"no se puede aplicar '{op}' a {nombre_tipo(a)} y {nombre_tipo(b)}")
         if op == "*":
-            return normalizar(a * b)
+            if isinstance(a, int) and isinstance(b, int) and a.bit_length() + b.bit_length() > MAX_BITS + 1:
+                raise self.error(ctx, f"el número entero es demasiado grande (más de "
+                                      f"{MAX_CIFRAS:,} cifras)".replace(",", "."))
+            return self.numero(ctx, a * b)
         if b == 0:
-            raise self.error(ctx, "división por cero" if op == "/" else "módulo por cero")
+            raise self.error(ctx, "división por cero" if op == "/" else
+                                  "módulo por cero (el residuo de dividir por 0 no existe)")
         if op == "/":
             if isinstance(a, int) and isinstance(b, int) and a % b == 0:
                 return a // b
-            return normalizar(a / b)
-        return normalizar(a % b)
+            return self.numero(ctx, a / b)
+        return self.numero(ctx, a % b)
 
     def visitUnario(self, ctx):
         if ctx.MENOS():
             v = self.visit(ctx.unario())
             if not es_numero(v):
                 raise self.error(ctx, f"no se puede aplicar '-' a {_describir(v)}")
-            return -v
+            return self.numero(ctx, -v)
         return self.visit(ctx.potencia())
 
     def visitPotencia(self, ctx):
@@ -369,8 +456,16 @@ class Interprete(LlanoVisitor):
         if base < 0 and not es_entero(exp):
             raise self.error(ctx.POT(), "una base negativa solo admite exponentes enteros")
         if isinstance(base, int) and es_entero(exp) and exp >= 0:
+            if abs(base) > 1 and abs(base).bit_length() * int(exp) > MAX_BITS + abs(base).bit_length():
+                raise self.error(ctx.POT(), f"el número entero es demasiado grande (más de "
+                                            f"{MAX_CIFRAS:,} cifras)".replace(",", "."))
             return base ** int(exp)
-        return normalizar(float(base) ** exp)
+        try:
+            resultado = float(base) ** exp
+        except OverflowError:
+            raise self.error(ctx.POT(), "el resultado es demasiado grande para representarse "
+                                        "(desbordamiento)")
+        return self.numero(ctx.POT(), resultado)
 
     # -- llamadas e índices -------------------------------------------
 
@@ -416,6 +511,7 @@ class Interprete(LlanoVisitor):
         if len(args) != funcion.aridad:
             raise self.error(ctx, f"'{funcion.nombre}' recibe {funcion.aridad} argumento(s), "
                                   f"pero se le pasaron {len(args)}")
+        self.revisar_cancelacion(ctx)
         if self.profundidad >= MAX_PROFUNDIDAD:
             raise self.error(ctx, "demasiadas llamadas anidadas (¿una recursión sin caso base?)")
         local = Entorno(funcion.cierre)
@@ -433,7 +529,7 @@ class Interprete(LlanoVisitor):
 
     def visitNumero(self, ctx):
         texto = ctx.getText()
-        return float(texto) if "." in texto else int(texto)
+        return self.numero(ctx, float(texto) if "." in texto else int(texto))
 
     def visitTexto(self, ctx):
         crudo = ctx.getText()[1:-1]

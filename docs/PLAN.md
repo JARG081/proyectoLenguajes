@@ -28,8 +28,10 @@ La rúbrica (`RÚBRICA PARA EVALUAR PROYECTO FINAL DE CURSO.pdf`) califica **el 
 | Errores en español por fase, con línea, columna, marca y pistas para errores típicos | ✅ |
 | `--tokens`, `--arbol`, `--dot`, `--verificar`, modo interactivo | ✅ |
 | 11 ejemplos y 4 ejemplos de error | ✅ |
-| Pruebas unitarias (43) y 55 casos de uso de punta a punta | ✅ `probar.bat` |
-| Opcional: `romper` / `continuar` | ⏳ si sobra tiempo |
+| `romper` / `continuar`; protección contra ciclos infinitos (error semántico, advertencias, límite de repeticiones, Ctrl+C) | ✅ |
+| Restricciones matemáticas (división por cero, dominios de `raiz` y `logaritmo`, desbordamiento) y plegado de constantes | ✅ |
+| Todos los errores en español; ninguna excepción de Python llega al usuario | ✅ |
+| Pruebas unitarias (56) y 75 casos de uso de punta a punta | ✅ `probar.bat` |
 | Opcional: editor web o resaltado de sintaxis para VS Code | ⏳ solo si sobra tiempo; no suma en la rúbrica |
 
 **Recomendación:** congelar el código pronto y dedicar el tiempo restante al informe y a la sustentación, que son lo que se califica.
@@ -76,6 +78,8 @@ Plan B: grabar un video corto de la demo por si falla el equipo.
 7. **¿Dónde está el autómata de pila?** Toda GLC necesita una pila para reconocerse; en el parser es la pila de llamadas de las funciones recursivas. También se usa una pila explícita para encontrar el `fin` faltante.
 8. **¿Compilador o intérprete?** Intérprete de recorrido de árbol; no genera código máquina.
 9. **¿Qué pasa con `1 == "1"`?** Es falso: el tipado es fuerte y no hay conversiones implícitas en la igualdad.
+10. **Si es indecidible, ¿cómo detectan los ciclos infinitos?** No todos: es imposible (problema de la parada). Se detectan los casos decidibles (`mientras verdadero` sin `romper`, `paso 0`) como error semántico, se advierte con una heurística (la condición no cambia en el cuerpo) y, al ejecutar, un límite de 1 000 000 de vueltas actúa como decisor acotado. Con el límite, Llano ya no es Turing completo en sentido estricto; con `--max-iteraciones 0` lo vuelve a ser.
+11. **¿Por qué `imprimir(1 / 0)` es error semántico y no de ejecución?** Por plegado de constantes: la expresión no depende de variables, así que se evalúa durante el análisis. Con `x / y` el error aparece al ejecutar.
 
 ## 6. Referencias de partida (completar y pasar a la norma definitiva)
 

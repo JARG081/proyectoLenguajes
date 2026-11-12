@@ -96,6 +96,8 @@ EJEMPLOS = [
          esperado=["aaabbb -> verdadero", "abab -> falso"]),
     caso("EJ11", "Ejemplo: calculadora interactiva", ["ejemplos/11_calculadora.llano"],
          entrada="*\n6\n7\nfin\n", esperado=["Resultado: 42", "¡Hasta luego!"]),
+    caso("EJ12", "Ejemplo: salidas de ciclos y restricciones", ["ejemplos/12_salidas_y_restricciones.llano"],
+         esperado=["56", "[1, 3, 5, 7, 9]", "Posición de 30: 2", "10 / 0 = nulo", "log2(1024) = 10"]),
 ]
 
 # ---------------------------------------------------------------------
@@ -126,7 +128,8 @@ ERRORES = [
     caso("E11", "Argumentos de más", codigo="funcion doble(n) retornar n * 2 fin\nimprimir(doble(1, 2))",
          esperado=["'doble' recibe 1 argumento, pero se le pasaron 2"], salida=1),
     caso("E12", "División por cero", codigo="variable a = 10\nimprimir(a / 0)",
-         esperado=["Error de ejecución en la línea 2", "división por cero"], salida=1),
+         esperado=["Error semántico en la línea 2", "división por cero (detectado antes de ejecutar)"],
+         salida=1),
     caso("E13", "Posición fuera de la lista", codigo="variable l = [1, 2, 3]\nimprimir(l[3])",
          esperado=["posición 3 fuera de rango (válidas: 0 a 2)"], salida=1),
     caso("E14", "Condición que no es lógica", codigo="si 1 entonces imprimir(1) fin",
@@ -143,7 +146,65 @@ ERRORES = [
 ]
 
 # ---------------------------------------------------------------------
-#  3. Línea de comandos y entorno
+#  3. Salidas de los ciclos y restricciones lógicas y matemáticas
+# ---------------------------------------------------------------------
+
+CICLOS_Y_RESTRICCIONES = [
+    caso("C01", "'romper' sale de un ciclo 'mientras verdadero'",
+         codigo='variable n = 0\nmientras verdadero hacer\n  n = n + 1\n  si n == 3 entonces romper fin\nfin\n'
+                'imprimir("salió con", n)', esperado=["salió con 3"]),
+    caso("C02", "'continuar' salta a la siguiente repetición",
+         codigo="para i desde 1 hasta 6 hacer\n  si i % 2 == 0 entonces continuar fin\n  imprimir(i)\nfin",
+         esperado=["1", "3", "5"]),
+    caso("C03", "Menú que se repite hasta escribir 'salir'", cu("cu16_menu_romper.llano"),
+         entrada="2\n3\nsalir\n", esperado=["El doble de 2 es 4", "El doble de 3 es 6", "¡Hasta luego!"]),
+    caso("C04", "'mientras verdadero' sin salida se rechaza antes de ejecutar",
+         codigo="mientras verdadero hacer\n  imprimir(1)\nfin",
+         esperado=["Error semántico", "ciclo infinito", "no tiene 'romper' ni 'retornar'"], salida=1),
+    caso("C05", "Ciclo que nunca termina se detiene al superar el límite",
+         ["--max-iteraciones", "1000"],
+         codigo="variable i = 0\nmientras i >= 0 hacer\n  i = i + 1\nfin",
+         esperado=["Error de ejecución en la línea 2", "superó 1.000 repeticiones", "usa 'romper'"],
+         salida=1),
+    caso("C06", "Sin advertencia si el ciclo tiene 'romper'",
+         codigo='variable i = 0\nmientras i < 3 hacer\n  imprimir("hola")\n  romper\nfin',
+         esperado=["hola"]),
+    caso("C07", "Advertencia: posible ciclo infinito (olvidó aumentar el contador)",
+         ["--max-iteraciones", "50"],
+         codigo='variable i = 0\nmientras i < 3 hacer\n  variable x = i\nfin',
+         esperado=["Advertencia en la línea 2", "posible ciclo infinito", "'i'",
+                   "superó 50 repeticiones"], salida=1),
+    caso("C08", "'romper' fuera de un ciclo", codigo="si verdadero entonces romper fin",
+         esperado=["'romper' solo puede usarse dentro de un ciclo"], salida=1),
+    caso("C09", "'continuar' dentro de una función pero fuera de su ciclo",
+         codigo="para i desde 1 hasta 2 hacer\n  funcion f() continuar fin\nfin",
+         esperado=["'continuar' solo puede usarse dentro de un ciclo"], salida=1),
+    caso("C10", "División por cero con variables (en ejecución)",
+         codigo="variable a = 10\nvariable b = a - 10\nimprimir(a / b)",
+         esperado=["Error de ejecución en la línea 3", "división por cero"], salida=1),
+    caso("C11", "Módulo por cero", codigo="variable a = 7\nimprimir(a % 0)",
+         esperado=["módulo por cero"], salida=1),
+    caso("C12", "Raíz de un número negativo", codigo="variable x = -4\nimprimir(raiz(x))",
+         esperado=["no existe la raíz cuadrada real de un número negativo"], salida=1),
+    caso("C13", "Logaritmo fuera de su dominio", codigo="variable x = 0\nimprimir(logaritmo(x))",
+         esperado=["el logaritmo solo existe para números mayores que 0"], salida=1),
+    caso("C14", "Base de logaritmo inválida", codigo="imprimir(logaritmo(8, 1))",
+         esperado=["distinta de 1", "detectado antes de ejecutar"], salida=1),
+    caso("C15", "Desbordamiento de un número real", codigo="variable x = 1.5\nimprimir(x ^ 2000)",
+         esperado=["demasiado grande"], salida=1),
+    caso("C16", "Cero elevado a un exponente negativo", codigo="variable e = -1\nimprimir(0 ^ e)",
+         esperado=["0 elevado a un exponente negativo"], salida=1),
+    caso("C17", "Condición constante que no es lógica",
+         codigo="mientras 1 hacer romper fin", esperado=["siempre vale 1"], salida=1),
+    caso("C18", "'para' con paso 0 se rechaza antes de ejecutar",
+         codigo="para i desde 1 hasta 3 paso 0 hacer fin",
+         esperado=["Error semántico", "ciclo infinito: el 'paso' no puede ser 0"], salida=1),
+    caso("C19", "Nunca se muestra un error de Python", codigo="variable x = 10 ^ 400\nimprimir(x * 0.5)",
+         esperado=["Error de ejecución", "demasiado grande"], salida=1),
+]
+
+# ---------------------------------------------------------------------
+#  4. Línea de comandos y entorno
 # ---------------------------------------------------------------------
 
 
@@ -177,9 +238,9 @@ LINEA_COMANDOS = [
     caso("L03", "--dot genera Graphviz", ["-e", "imprimir(1)", "--dot"], esperado=["digraph arbol {"]),
     caso("L04", "--verificar no ejecuta", ["-e", 'imprimir("no debe salir")', "--verificar"],
          esperado=["no tiene errores léxicos, sintácticos ni semánticos"]),
-    caso("L05", "--funciones lista las 15 predefinidas", ["--funciones"],
-         esperado=["imprimir", "subcadena", "aleatorio"]),
-    caso("L06", "--version", ["--version"], esperado=["Llano 0.2.0"]),
+    caso("L05", "--funciones lista las 16 predefinidas", ["--funciones"],
+         esperado=["imprimir", "subcadena", "aleatorio", "logaritmo"]),
+    caso("L06", "--version", ["--version"], esperado=["Llano 0.3.0"]),
     caso("L07", "Modo interactivo con bloque de varias líneas", [],
          entrada="variable a = 5\na * 2\nfuncion f(n)\n  retornar n + a\nfin\nf(10)\nsalir\n",
          esperado=["llano>", "10", "15"]),
@@ -204,6 +265,7 @@ GRUPOS = [
     ("Casos de uso (programas completos)", PROGRAMAS),
     ("Ejemplos del proyecto", EJEMPLOS),
     ("Errores típicos de un principiante", ERRORES),
+    ("Salidas de los ciclos y restricciones", CICLOS_Y_RESTRICCIONES),
     ("Línea de comandos y entorno", LINEA_COMANDOS),
 ]
 

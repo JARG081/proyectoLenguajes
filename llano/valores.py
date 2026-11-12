@@ -157,6 +157,7 @@ def _numero(texto):
 
 def _entero(x):
     _requiere(es_numero(x), f"entero() necesita un número, pero recibió {nombre_tipo(x)}")
+    _requiere(not isinstance(x, float) or math.isfinite(x), "entero() necesita un número finito")
     return int(x)
 
 
@@ -206,7 +207,24 @@ def _subcadena(texto, inicio, fin=None):
 def _raiz(x):
     _requiere(es_numero(x), f"raiz() necesita un número, pero recibió {nombre_tipo(x)}")
     _requiere(x >= 0, "no existe la raíz cuadrada real de un número negativo")
-    return normalizar(math.sqrt(x))
+    if isinstance(x, int):
+        r = math.isqrt(x)                 # exacta para enteros de cualquier tamaño
+        if r * r == x:
+            return r
+    try:
+        return normalizar(math.sqrt(x))
+    except OverflowError:
+        raise FalloNativo("el número es demasiado grande para calcular su raíz")
+
+
+def _logaritmo(x, base=None):
+    _requiere(es_numero(x), f"logaritmo() necesita un número, pero recibió {nombre_tipo(x)}")
+    _requiere(x > 0, "el logaritmo solo existe para números mayores que 0")
+    if base is None:
+        return normalizar(math.log(x))    # logaritmo natural (base e)
+    _requiere(es_numero(base), f"la base del logaritmo debe ser un número, pero es {nombre_tipo(base)}")
+    _requiere(base > 0 and base != 1, "la base del logaritmo debe ser mayor que 0 y distinta de 1")
+    return normalizar(math.log(x, base))
 
 
 def _absoluto(x):
@@ -217,6 +235,8 @@ def _absoluto(x):
 def _redondear(x, decimales=0):
     _requiere(es_numero(x), f"redondear() necesita un número, pero recibió {nombre_tipo(x)}")
     _requiere(es_entero(decimales), "la cantidad de decimales debe ser un número entero")
+    _requiere(-15 <= decimales <= 15, "la cantidad de decimales debe estar entre -15 y 15")
+    _requiere(not isinstance(x, float) or math.isfinite(x), "redondear() necesita un número finito")
     # Redondeo escolar: 2.5 -> 3 y -2.5 -> -3 (round() de Python daría 2)
     paso = Decimal(1).scaleb(-int(decimales))
     redondeado = Decimal(str(x)).quantize(paso, rounding=ROUND_HALF_UP)
@@ -254,7 +274,8 @@ def crear_nativas(salida, entrada):
         ("invertir", _invertir, 1, 1, "Reflexión w⁻¹ de un texto o una lista."),
         ("subcadena", _subcadena, 2, 3, "Subcadena entre dos posiciones [inicio, fin)."),
         ("tipo", lambda v: nombre_tipo(v), 1, 1, "Nombre del tipo de un valor."),
-        ("raiz", _raiz, 1, 1, "Raíz cuadrada."),
+        ("raiz", _raiz, 1, 1, "Raíz cuadrada (solo de números no negativos)."),
+        ("logaritmo", _logaritmo, 1, 2, "Logaritmo natural, o en la base dada (x > 0; base > 0 y ≠ 1)."),
         ("absoluto", _absoluto, 1, 1, "Valor absoluto."),
         ("redondear", _redondear, 1, 2, "Redondea a cierta cantidad de decimales."),
         ("aleatorio", _aleatorio, 2, 2, "Entero al azar entre a y b (incluidos)."),

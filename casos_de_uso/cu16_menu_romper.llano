@@ -1,0 +1,16 @@
+# CU16 - Menú que se repite hasta que el usuario escribe "salir".
+# Muestra las dos salidas de un ciclo: 'continuar' salta a la siguiente
+# vuelta y 'romper' termina el ciclo.
+mientras verdadero hacer
+    variable dato = leer("Escribe un número (o 'salir'): ")
+    si dato == "salir" entonces
+        romper
+    fin
+    si dato == "" entonces
+        imprimir("No escribiste nada")
+        continuar
+    fin
+    variable n = numero(dato)
+    imprimir("El doble de " + n + " es " + n * 2)
+fin
+imprimir("¡Hasta luego!")

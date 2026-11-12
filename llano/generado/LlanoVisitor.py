@@ -1,4 +1,4 @@
-# Generated from /home/claude/llano/gramatica/Llano.g4 by ANTLR 4.13.2
+# Generated from /home/claude/proyectoLenguajes/gramatica/Llano.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .LlanoParser import LlanoParser
@@ -61,6 +61,16 @@ class LlanoVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by LlanoParser#retorno.
     def visitRetorno(self, ctx:LlanoParser.RetornoContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by LlanoParser#romper.
+    def visitRomper(self, ctx:LlanoParser.RomperContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by LlanoParser#continuar.
+    def visitContinuar(self, ctx:LlanoParser.ContinuarContext):
         return self.visitChildren(ctx)
 
 

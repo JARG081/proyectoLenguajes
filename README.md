@@ -45,6 +45,8 @@ El instalador revisa la versión de Python, instala el runtime de ANTLR y ejecut
 | `python llano.py programa.llano --dot` | Árbol en formato Graphviz DOT |
 | `python llano.py programa.llano --verificar` | Solo analiza (léxico, sintaxis, semántica), no ejecuta |
 | `python llano.py --funciones` | Lista las funciones predefinidas |
+| `python llano.py programa.llano --max-iteraciones 5000` | Cambia el máximo de vueltas de un ciclo (por defecto 1.000.000; `0` = sin límite) |
+| `python llano.py programa.llano --depurar` | Muestra la traza de Python si falla el intérprete (solo para desarrollo) |
 | `probar.bat` (o `./probar.sh`) | Ejecuta las pruebas unitarias y los casos de uso |
 | `python -m unittest discover -s pruebas -v` | Solo las pruebas unitarias |
 | `python pruebas/casos_de_uso.py -v` | Solo los casos de uso, mostrando la salida de cada uno |
@@ -83,6 +85,13 @@ para i desde 10 hasta 0 paso -2 hacer   # paso opcional (por defecto 1)
     imprimir(i)
 fin
 
+mientras verdadero hacer                # salidas de un ciclo:
+    variable dato = leer("Dato: ")
+    si dato == "salir" entonces romper fin        # termina el ciclo
+    si dato == "" entonces continuar fin          # pasa a la siguiente vuelta
+    imprimir("Leí", dato)
+fin
+
 funcion area(base, altura)
     retornar base * altura / 2
 fin
@@ -94,8 +103,40 @@ imprimir("Área:", area(4, 3))
 - Cada bloque `si`, `mientras` o `para` tiene su propio ámbito. Las funciones pueden llamarse antes de la línea donde se definen.
 - Las condiciones deben ser `verdadero` o `falso`: `si 1 entonces` es un error.
 - `funcion` también puede escribirse `función`.
+- `romper` termina el ciclo más interno; `continuar` salta a su siguiente vuelta (en un `para`, la variable avanza igual). Solo valen dentro de un `mientras` o un `para`. `retornar` también sale de los ciclos de una función.
 
-**Funciones predefinidas:** `imprimir`, `leer`, `numero`, `texto`, `entero`, `longitud`, `agregar`, `quitar`, `invertir`, `subcadena`, `tipo`, `raiz`, `absoluto`, `redondear`, `aleatorio`.
+**Funciones predefinidas:** `imprimir`, `leer`, `numero`, `texto`, `entero`, `longitud`, `agregar`, `quitar`, `invertir`, `subcadena`, `tipo`, `raiz`, `logaritmo`, `absoluto`, `redondear`, `aleatorio`.
+
+### Protección contra ciclos infinitos
+
+Decidir si cualquier programa termina es imposible (problema de la parada), así que Llano combina tres defensas:
+
+| Defensa | Cuándo actúa | Ejemplo |
+|---|---|---|
+| Error semántico (antes de ejecutar) | Ciclos infinitos evidentes | `mientras verdadero hacer … fin` sin `romper` ni `retornar`; `para … paso 0` |
+| Advertencia (el programa sí se ejecuta) | La condición no puede cambiar dentro del ciclo, o el ciclo nunca se ejecuta | `mientras i < 3 hacer imprimir(i) fin` (falta `i = i + 1`); `mientras falso` |
+| Límite de repeticiones (en ejecución) | Un ciclo pasa de 1.000.000 de vueltas | Se detiene con un error que sugiere usar `romper`. Se cambia con `--max-iteraciones N` (0 = sin límite) |
+
+Además, **Ctrl+C** detiene cualquier programa (también en el modo interactivo, que sigue funcionando) y la recursión está limitada a 3000 llamadas anidadas.
+
+### Restricciones lógicas y matemáticas
+
+| Restricción | Mensaje |
+|---|---|
+| `a / 0`, `a % 0` | división por cero / módulo por cero |
+| `0 ^ n` con n < 0 | división por cero (0 elevado a un exponente negativo) |
+| `(-8) ^ 0.5` | una base negativa solo admite exponentes enteros |
+| `raiz(x)` con x < 0 | no existe la raíz cuadrada real de un número negativo |
+| `logaritmo(x, b)` con x ≤ 0, b ≤ 0 o b = 1 | el logaritmo solo existe para números mayores que 0 / la base debe ser mayor que 0 y distinta de 1 |
+| Resultados infinitos o indeterminados (`1.5 ^ 5000`) | el resultado es demasiado grande para representarse (desbordamiento) |
+| Enteros de más de 1.000.000 de cifras, textos de más de 10.000.000 de caracteres | el número/texto es demasiado grande |
+| Condiciones de `si` y `mientras` | deben ser `verdadero` o `falso`; `si 1 entonces` es un error |
+| `y`, `o`, `no` | solo con valores lógicos (`1 y 2` es un error) |
+| Comparar tipos distintos con `<` | no se puede comparar número con texto |
+
+Si la expresión es **constante** (solo literales y funciones puras como `raiz`), el error se detecta en el análisis semántico, antes de ejecutar: `imprimir(x / 0)` o `raiz(-4)` nunca llegan a correr. Con variables, se detecta al ejecutar.
+
+Todos los errores se muestran en español: si una operación falla dentro de Python por un caso no previsto, el intérprete lo convierte en un error de Llano con la línea y la columna. La traza de Python solo aparece con `--depurar` (para desarrollo).
 
 La especificación formal (alfabeto, expresiones regulares, AFD de los tokens, gramática y semántica) está en [`docs/especificacion.md`](docs/especificacion.md).
 
@@ -113,8 +154,9 @@ Error semántico en la línea 3, columna 1: la variable 'totl' no ha sido declar
 |---|---|---|
 | Léxica | carácter que no pertenece al alfabeto, texto sin cerrar | `ejemplos/errores/1_lexico.llano` |
 | Sintáctica | falta un `fin`, sobra un símbolo, palabra reservada como nombre | `ejemplos/errores/2_sintactico.llano` |
-| Semántica | variable sin declarar, declaración repetida, número de argumentos | `ejemplos/errores/3_semantico.llano` |
-| Ejecución | división por cero, posición fuera de rango, condición no lógica | `ejemplos/errores/4_ejecucion.llano` |
+| Semántica | variable sin declarar, declaración repetida, número de argumentos, `romper` fuera de un ciclo, ciclo infinito evidente, división por cero constante | `ejemplos/errores/3_semantico.llano` |
+| Ejecución | división por cero con variables, posición fuera de rango, condición no lógica, ciclo que supera el límite de repeticiones | `ejemplos/errores/4_ejecucion.llano` |
+| Advertencia | posible ciclo infinito, ciclo que nunca se ejecuta (no detiene el programa) | — |
 
 Los errores semánticos se reportan todos juntos y **antes** de ejecutar el programa.
 
@@ -122,9 +164,9 @@ Cuando el error es típico de quien empieza, el mensaje agrega una pista: `=` en
 
 ## Casos de uso
 
-La carpeta `casos_de_uso/` tiene 15 programas como los que escribiría un estudiante: promedio de notas, primos, FizzBuzz, palíndromos, lista de compras, búsqueda binaria, ordenamiento, matrices, Torres de Hanói, cajero automático, validación de identificadores con un AFD y conversión a binario. Varios leen datos del teclado.
+La carpeta `casos_de_uso/` tiene 16 programas como los que escribiría un estudiante: promedio de notas, primos, FizzBuzz, palíndromos, lista de compras, búsqueda binaria, ordenamiento, matrices, Torres de Hanói, cajero automático, validación de identificadores con un AFD y conversión a binario y un menú que termina con `romper`. Varios leen datos del teclado.
 
-`pruebas/casos_de_uso.py` ejecuta 55 casos de punta a punta, igual que un usuario: esos programas con sus entradas, los ejemplos, 18 errores típicos y las opciones de la línea de comandos (tokens, árbol, modo interactivo, archivos de Windows, rutas con espacios, enteros grandes). Comprueba la salida y el código de salida, y que nunca aparezca una traza interna de Python. El resultado queda en `casos_de_uso/RESULTADOS.md`.
+`pruebas/casos_de_uso.py` ejecuta 75 casos de punta a punta, igual que un usuario: esos programas con sus entradas, los ejemplos, 18 errores típicos, 19 casos de salidas de ciclos y restricciones matemáticas, y las opciones de la línea de comandos (tokens, árbol, modo interactivo, archivos de Windows, rutas con espacios, enteros grandes). Comprueba la salida y el código de salida, y que nunca aparezca una traza interna de Python. El resultado queda en `casos_de_uso/RESULTADOS.md`.
 
 ## Ejemplos
 
@@ -141,6 +183,7 @@ La carpeta `casos_de_uso/` tiene 15 programas como los que escribiría un estudi
 | `09_traductor_mealy.llano` | **Unidad 2:** máquinas de Mealy y Moore (ejemplo de clase) |
 | `10_maquina_turing.llano` | **MT** que reconoce aⁿbⁿ: Llano puede simular una máquina de Turing |
 | `11_calculadora.llano` | Programa interactivo con `leer()` |
+| `12_salidas_y_restricciones.llano` | `romper`, `continuar`, `retornar` dentro de un ciclo; restricciones matemáticas |
 
 ## Arquitectura
 

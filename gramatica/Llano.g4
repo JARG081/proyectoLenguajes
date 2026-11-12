@@ -26,6 +26,8 @@ sentencia   : declaracion
             | para
             | funcion
             | retorno
+            | romper
+            | continuar
             | expresion            // p. ej. una llamada: imprimir("hola")
             ;
 
@@ -49,6 +51,13 @@ funcion     : FUNCION ID PARI parametros? PARD bloque FIN ;
 parametros  : ID (COMA ID)* ;
 
 retorno     : RETORNAR expresion ;
+
+// Salidas de un ciclo: 'romper' lo termina y 'continuar' salta a la
+// siguiente repetición. Solo son válidas dentro de un mientras o un para
+// (lo revisa el análisis semántico, porque depende del contexto).
+romper      : ROMPER ;
+
+continuar   : CONTINUAR ;
 
 // ---------------------------------------------------------------------
 //  Expresiones. Un nivel de la gramática por cada nivel de precedencia,
@@ -119,6 +128,8 @@ HASTA      : 'hasta' ;
 PASO       : 'paso' ;
 FUNCION    : 'funcion' | 'función' ;
 RETORNAR   : 'retornar' ;
+ROMPER     : 'romper' ;
+CONTINUAR  : 'continuar' ;
 VERDADERO  : 'verdadero' ;
 FALSO      : 'falso' ;
 NULO       : 'nulo' ;

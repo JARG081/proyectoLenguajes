@@ -1,0 +1,51 @@
+# Salidas de los ciclos y restricciones lógicas y matemáticas
+
+# 1. 'romper' termina un ciclo; 'continuar' salta a la siguiente vuelta.
+imprimir("Primer múltiplo de 7 mayor que 50:")
+variable n = 51
+mientras verdadero hacer          # válido porque el ciclo tiene 'romper'
+    si n % 7 == 0 entonces
+        romper
+    fin
+    n = n + 1
+fin
+imprimir(n)
+
+imprimir("Impares hasta 9:")
+variable impares = []
+para i desde 1 hasta 9 hacer
+    si i % 2 == 0 entonces
+        continuar                 # el 'para' sigue con el siguiente i
+    fin
+    agregar(impares, i)
+fin
+imprimir(impares)
+
+# 2. 'retornar' también sale de un ciclo (y de la función).
+funcion buscar(lista, valor)
+    para i desde 0 hasta longitud(lista) - 1 hacer
+        si lista[i] == valor entonces
+            retornar i
+        fin
+    fin
+    retornar -1
+fin
+imprimir("Posición de 30:", buscar([10, 20, 30, 40], 30))
+
+# 3. Restricciones matemáticas: se revisan antes de operar.
+funcion dividir_seguro(a, b)
+    si b == 0 entonces
+        retornar nulo             # en vez de dividir por cero
+    fin
+    retornar a / b
+fin
+imprimir("10 / 4 =", dividir_seguro(10, 4), " 10 / 0 =", dividir_seguro(10, 0))
+imprimir("log2(1024) =", logaritmo(1024, 2), " raiz(2) =", redondear(raiz(2), 4))
+
+# Cada una de estas líneas es un error (quita el # para probarla):
+# imprimir(1 / 0)                       división por cero (se detecta antes de ejecutar)
+# imprimir(raiz(-4))                    raíz de un número negativo
+# imprimir(logaritmo(0))                logaritmo fuera de su dominio
+# mientras verdadero hacer fin          ciclo infinito sin 'romper'
+# para i desde 1 hasta 5 paso 0 hacer fin   paso 0: el ciclo no avanzaría
+# romper                                'romper' fuera de un ciclo

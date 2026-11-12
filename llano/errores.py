@@ -14,6 +14,7 @@ FASES = {
     "sintactico": "Error de sintaxis",
     "semantico": "Error semántico",
     "ejecucion": "Error de ejecución",
+    "advertencia": "Advertencia",
 }
 
 
@@ -61,13 +62,46 @@ class ErroresLlano(Exception):
 
 
 # ---------------------------------------------------------------------
+#  Traducción de las excepciones de Python
+# ---------------------------------------------------------------------
+#  El intérprete está escrito en Python, pero el usuario de Llano nunca
+#  debe ver un error de Python (ZeroDivisionError, OverflowError, una
+#  traza, ...). Si alguna operación falla dentro de Python por un caso que
+#  el intérprete no previó, la excepción se convierte en un ErrorLlano con
+#  un mensaje en español y la posición de la instrucción que la causó.
+
+def mensaje_de_excepcion(e):
+    """Mensaje en español para una excepción de Python (sin nombres de Python)."""
+    if isinstance(e, RecursionError):
+        return "demasiadas llamadas anidadas (¿una recursión sin caso base?)"
+    if isinstance(e, MemoryError):
+        return ("el programa se quedó sin memoria "
+                "(¿una lista o un texto que crece sin fin?)")
+    if isinstance(e, ZeroDivisionError):
+        return "división por cero"
+    if isinstance(e, OverflowError):
+        return "el número es demasiado grande para calcularse (desbordamiento)"
+    if isinstance(e, ArithmeticError):
+        return "operación matemática no válida"
+    if isinstance(e, (IndexError, KeyError)):
+        return "se intentó usar una posición o un elemento que no existe"
+    if isinstance(e, TypeError):
+        return "los tipos de los valores no son compatibles con esta operación"
+    if isinstance(e, ValueError):
+        return "valor no válido para esta operación"
+    if isinstance(e, (UnicodeError, OSError)):
+        return "no se pudo leer o escribir un dato (entrada/salida)"
+    return "ocurrió un error interno al ejecutar esta instrucción"
+
+
+# ---------------------------------------------------------------------
 #  Traducción de los mensajes de ANTLR
 # ---------------------------------------------------------------------
 
 PALABRAS_RESERVADAS = {
     "variable", "si", "entonces", "sino", "fin", "mientras", "hacer", "para",
     "desde", "hasta", "paso", "funcion", "función", "retornar", "verdadero",
-    "falso", "nulo", "y", "o", "no",
+    "falso", "nulo", "y", "o", "no", "romper", "continuar",
 }
 
 NOMBRES_TOKENS = {
