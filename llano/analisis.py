@@ -167,7 +167,7 @@ def _etiqueta(nodo, parser, compacto):
         return f"{nombre_tipo_token(tok.type)} '{tok.text}'"
     regla = parser.ruleNames[nodo.getRuleIndex()]
     etiqueta = type(nodo).__name__[:-len("Context")].lower()
-    return regla if etiqueta == regla else f"{regla} ({etiqueta})"   # alternativa etiquetada
+    return regla if etiqueta == regla.lower() else f"{regla} ({etiqueta})"   # alternativa etiquetada
 
 
 def _hijos(nodo, compacto):
