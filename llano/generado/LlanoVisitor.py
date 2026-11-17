@@ -1,11 +1,9 @@
-# Generated from /home/claude/proyectoLenguajes/gramatica/Llano.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .LlanoParser import LlanoParser
 else:
     from LlanoParser import LlanoParser
 
-# This class defines a complete generic visitor for a parse tree produced by LlanoParser.
 
 class LlanoVisitor(ParseTreeVisitor):
 

@@ -1,5 +1,3 @@
-# Generated from /home/claude/proyectoLenguajes/gramatica/Llano.g4 by ANTLR 4.13.2
-# encoding: utf-8
 from antlr4 import *
 from io import StringIO
 import sys
@@ -260,7 +258,7 @@ class LlanoParser ( Parser ):
 
         localctx = LlanoParser.ProgramaContext(self, self._ctx, self.state)
         self.enterRule(localctx, 0, self.RULE_programa)
-        self._la = 0 # Token type
+        self._la = 0
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 63

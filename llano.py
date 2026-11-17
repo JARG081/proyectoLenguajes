@@ -141,7 +141,7 @@ def _interactivo(args):
             except KeyboardInterrupt:
                 print("\nEjecución interrumpida.")
                 break
-            except Exception as e:  # el modo interactivo nunca se cierra por un error  # noqa: BLE001
+            except Exception as e:  # el modo interactivo nunca se cierra por un error
                 _error_interno(e, args)
                 break
 

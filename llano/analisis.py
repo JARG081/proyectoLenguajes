@@ -65,9 +65,7 @@ def analizar(fuente):
     parser.removeErrorListeners()
     parser.addErrorListener(recolector)
     arbol = parser.programa()
-    if recolector.errores:
-        # Solo el primer error de sintaxis: los siguientes suelen ser
-        # consecuencia de la recuperación automática de ANTLR y confunden.
+    if recolector.errores:#solo primer error
         errores = recolector.errores[:1]
         pista = pista_contextual(flujo.tokens, errores[0].token)
         if pista:
@@ -105,7 +103,7 @@ def pista_contextual(tokens, tok):
         return "para comparar dos valores se usa '=='"
     if tok.type == LlanoLexer.POR and previo is not None and previo.type == LlanoLexer.POR:
         return "para la potencia se usa '^'"
-    # ¿La línea empieza con una palabra clave mal escrita? (mientra, Si, Para, retorna…)
+    #linea empieza con una palabra clave mal escrita?
     linea = [t for t in visibles if t.line == tok.line]
     for t in linea[:1] + ([previo] if previo is not None else []):
         if t.type != LlanoLexer.ID:
@@ -135,10 +133,7 @@ def bloque_sin_cerrar(tokens):
         anterior = t.type
     return pila[-1] if pila else None
 
-
-# ---------------------------------------------------------------------
-#  Presentación de tokens y árboles
-# ---------------------------------------------------------------------
+#tokens y árboles
 
 def nombre_tipo_token(tipo):
     nombres = LlanoLexer.symbolicNames

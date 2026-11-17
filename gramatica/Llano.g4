@@ -1,20 +1,3 @@
-// =====================================================================
-//  Llano: un lenguaje de programación sencillo en español
-//  Gramática ANTLR 4.13.2 (combinada: léxico + sintaxis)
-//
-//  Proyecto final - Lenguajes de Programación - Universidad de los Llanos
-//
-//  Las reglas en minúscula son producciones de la gramática libre de
-//  contexto (GLC). Las reglas en MAYÚSCULA son componentes léxicos y se
-//  definen con expresiones regulares (ER); ANTLR las convierte en un
-//  autómata finito para reconocerlas.
-// =====================================================================
-grammar Llano;
-
-// ---------------------------------------------------------------------
-//  Sintaxis (GLC)
-// ---------------------------------------------------------------------
-
 programa    : sentencia* EOF ;
 
 bloque      : sentencia* ;
@@ -28,14 +11,13 @@ sentencia   : declaracion
             | retorno
             | romper
             | continuar
-            | expresion            // p. ej. una llamada: imprimir("hola")
+            | expresion
             ;
 
 declaracion : VARIABLE ID (ASIG expresion)? ;
 
 asignacion  : ID indice* ASIG expresion ;
 
-// "sino si" encadena condiciones sin anidar otro "fin".
 condicional : SI expresion ENTONCES bloque
               (SINO SI expresion ENTONCES bloque)*
               (SINO bloque)?
@@ -52,18 +34,12 @@ parametros  : ID (COMA ID)* ;
 
 retorno     : RETORNAR expresion ;
 
-// Salidas de un ciclo: 'romper' lo termina y 'continuar' salta a la
-// siguiente repetición. Solo son válidas dentro de un mientras o un para
-// (lo revisa el análisis semántico, porque depende del contexto).
 romper      : ROMPER ;
 
 continuar   : CONTINUAR ;
 
-// ---------------------------------------------------------------------
-//  Expresiones. Un nivel de la gramática por cada nivel de precedencia,
-//  de menor a mayor. Así la gramática no es ambigua: cada expresión
-//  tiene un único árbol de derivación.
-// ---------------------------------------------------------------------
+
+//  Expresiones.
 
 expresion   : disyuncion ;
 
@@ -110,10 +86,7 @@ primario    : NUMERO                                       # numero
             | PARI expresion PARD                          # agrupacion
             ;
 
-// ---------------------------------------------------------------------
-//  Léxico (ER). Las palabras reservadas van antes que ID: si una cadena
-//  coincide con las dos, gana la regla que aparece primero.
-// ---------------------------------------------------------------------
+//  Léxico (ER).
 
 VARIABLE   : 'variable' ;
 SI         : 'si' ;

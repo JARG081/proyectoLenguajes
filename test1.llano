@@ -1,0 +1,8 @@
+variable nombre = "Manuel"
+variable edad =
+
+si edad >= 18 entonces
+    imprimir("Hola", nombre, "eres mayor de edad")
+sino
+    imprimir("Hola", nombre, "eres menor de edad")
+fin

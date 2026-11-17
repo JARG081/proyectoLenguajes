@@ -1,4 +1,3 @@
-# Generated from /home/claude/proyectoLenguajes/gramatica/Llano.g4 by ANTLR 4.13.2
 from antlr4 import *
 from io import StringIO
 import sys
