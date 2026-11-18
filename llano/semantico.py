@@ -1,31 +1,3 @@
-"""Análisis semántico: revisa el programa antes de ejecutarlo.
-
-Recorre el árbol de derivación con una tabla de símbolos por ámbitos y
-detecta, sin ejecutar nada:
-
-  * usos de nombres que no han sido declarados,
-  * declaraciones repetidas en el mismo ámbito y parámetros repetidos,
-  * asignaciones a funciones,
-  * 'retornar' fuera de una función,
-  * llamadas con una cantidad incorrecta de argumentos (cuando la
-    función se conoce en el análisis),
-  * 'romper' y 'continuar' fuera de un ciclo,
-  * errores matemáticos en expresiones constantes (1 / 0, x % 0,
-    raiz(-4), 0 ^ -1, ...): se evalúan antes de ejecutar,
-  * condiciones constantes que no son lógicas (si 1 entonces ...),
-  * ciclos infinitos evidentes: 'mientras verdadero' sin 'romper' ni
-    'retornar', y 'para' con 'paso 0'.
-
-También produce advertencias (no detienen el programa) para ciclos que
-nunca se ejecutan y ciclos cuya condición no cambia dentro del cuerpo.
-Detectar TODOS los ciclos infinitos es imposible (problema de la parada);
-para el resto, el intérprete limita la cantidad de repeticiones.
-
-Las funciones se declaran al inicio de su bloque y sus cuerpos se revisan
-al final, así una función puede usarse antes de la línea donde está escrita
-y puede llamar a otra declarada después.
-"""
-
 import difflib
 
 from antlr4.tree.Tree import TerminalNode
@@ -37,12 +9,9 @@ from .valores import NATIVAS, representar
 
 P = LlanoParser
 
-# Funciones predefinidas sin efectos (no leen ni escriben, no son al azar):
-# con argumentos constantes dan siempre el mismo resultado.
 PURAS = {"raiz", "logaritmo", "absoluto", "entero", "redondear", "numero", "texto",
          "longitud", "invertir", "subcadena", "tipo"}
 
-# Nodos que son expresiones (candidatos a evaluarse como constantes).
 EXPRESIONES = (P.ExpresionContext, P.DisyuncionContext, P.ConjuncionContext,
                P.NegacionContext, P.ComparacionContext, P.SumaContext, P.ProductoContext,
                P.UnarioContext, P.PotenciaContext, P.PostfijoContext, P.PrimarioContext)
@@ -51,7 +20,7 @@ EXPRESIONES = (P.ExpresionContext, P.DisyuncionContext, P.ConjuncionContext,
 class Simbolo:
     def __init__(self, nombre, clase, minimo=None, maximo=None):
         self.nombre = nombre
-        self.clase = clase          # 'variable', 'parametro', 'funcion' o 'nativa'
+        self.clase = clase
         self.minimo = minimo
         self.maximo = maximo
 
@@ -96,7 +65,6 @@ class AnalizadorSemantico(LlanoVisitor):
         self._constantes = {}
         self._evaluador = None
 
-    # -- utilidades ---------------------------------------------------
 
     def error(self, token_o_ctx, mensaje):
         if hasattr(token_o_ctx, "getSymbol"):      # nodo terminal
@@ -109,12 +77,8 @@ class AnalizadorSemantico(LlanoVisitor):
         tok = ctx.getSymbol() if hasattr(ctx, "getSymbol") else ctx.start
         self.advertencias.append(ErrorLlano("advertencia", mensaje, tok.line, tok.column))
 
-    # -- expresiones constantes ---------------------------------------
 
     def es_constante(self, ctx):
-        """Una expresión es constante si solo tiene literales, operadores y
-        llamadas a funciones predefinidas puras: su valor no depende de la
-        ejecución, así que se puede calcular durante el análisis."""
         if isinstance(ctx, TerminalNode):
             return ctx.getSymbol().type != P.ID
         if isinstance(ctx, P.PostfijoContext) and isinstance(ctx.primario(), P.IdentificadorContext):
@@ -132,15 +96,12 @@ class AnalizadorSemantico(LlanoVisitor):
         return all(self.es_constante(ctx.getChild(i)) for i in range(ctx.getChildCount()))
 
     def constante(self, ctx):
-        """Devuelve (True, valor) si la expresión es constante y se puede
-        evaluar sin errores; si no, (False, None). Los errores de la
-        evaluación (p. ej. una división por cero) se informan una sola vez."""
         if ctx in self._constantes:
             return self._constantes[ctx]
         resultado = (False, None)
         if self.es_constante(ctx):
             if self._evaluador is None:
-                from .interprete import Interprete   # import tardío: evita ciclo de imports
+                from .interprete import Interprete  # evita import circular
                 self._evaluador = Interprete(salida=lambda *_: None, entrada=lambda *_: "")
             try:
                 resultado = (True, self._evaluador.visit(ctx))
@@ -153,16 +114,12 @@ class AnalizadorSemantico(LlanoVisitor):
         return resultado
 
     def visit(self, ctx):
-        # Una expresión constante se evalúa completa (y así se revisan sus
-        # restricciones matemáticas); las demás se recorren normalmente.
         if isinstance(ctx, EXPRESIONES) and self.es_constante(ctx):
             self.constante(ctx)
             return None
         return super().visit(ctx)
 
     def visitChildren(self, node):
-        # El recorrido por defecto de ANTLR llama a accept() y se saltaría
-        # el método visit() de arriba; aquí todo pasa por visit().
         for i in range(node.getChildCount()):
             hijo = node.getChild(i)
             if not isinstance(hijo, TerminalNode):
@@ -170,8 +127,6 @@ class AnalizadorSemantico(LlanoVisitor):
         return None
 
     def condicion_constante(self, cond, palabra):
-        """Revisa la condición de un si/mientras. Devuelve su valor si es
-        constante y lógica; si no, None."""
         ok, valor = self.constante(cond)
         if not ok:
             return None
@@ -181,11 +136,9 @@ class AnalizadorSemantico(LlanoVisitor):
             return None
         return valor
 
-    # -- ciclos -------------------------------------------------------
 
     @staticmethod
     def _buscar(ctx, tipos, sin_entrar=()):
-        """¿Hay un nodo de 'tipos' dentro de ctx, sin entrar en 'sin_entrar'?"""
         for i in range(ctx.getChildCount()):
             h = ctx.getChild(i)
             if isinstance(h, TerminalNode):
@@ -199,8 +152,6 @@ class AnalizadorSemantico(LlanoVisitor):
         return False
 
     def tiene_salida(self, bloque):
-        """¿El cuerpo de un ciclo tiene una forma de salir de él?
-        'romper' (de este ciclo, no de uno interno) o 'retornar'."""
         if self._buscar(bloque, (P.RomperContext,), (P.MientrasContext, P.ParaContext, P.FuncionContext)):
             return True
         return self.en_funcion > 0 and self._buscar(bloque, (P.RetornoContext,), (P.FuncionContext,))
@@ -216,9 +167,6 @@ class AnalizadorSemantico(LlanoVisitor):
         return acumulado
 
     def _modificados(self, ctx, acumulado):
-        """Nombres que el cuerpo de un ciclo puede cambiar. Devuelve None si
-        no se puede saber (llama a una función del usuario, que podría
-        cambiar cualquier variable)."""
         if isinstance(ctx, (P.AsignacionContext, P.ParaContext)):
             acumulado.add(ctx.ID().getText())
         if isinstance(ctx, P.PostfijoContext):
@@ -265,11 +213,8 @@ class AnalizadorSemantico(LlanoVisitor):
         self.actual.simbolos[nombre] = Simbolo(nombre, clase, minimo, maximo)
 
     def revisar_bloque(self, sentencias):
-        """Revisa una secuencia de sentencias y luego las funciones pendientes."""
         pendientes_previos = self.pendientes
         self.pendientes = []
-        # Las funciones se declaran primero ("elevación"): se pueden llamar
-        # desde cualquier punto de su bloque, aunque estén escritas después.
         for s in sentencias:
             if s.funcion():
                 self.visit(s.funcion())
@@ -296,14 +241,12 @@ class AnalizadorSemantico(LlanoVisitor):
         self.en_funcion -= 1
         self.actual = anterior
 
-    # -- sentencias ---------------------------------------------------
 
     def visitPrograma(self, ctx):
         self.revisar_bloque(ctx.sentencia())
         return self.errores
 
     def visitBloque(self, ctx):
-        # Cada bloque de si/mientras/para crea un ámbito nuevo.
         anterior = self.actual
         self.actual = Ambito(anterior, "bloque")
         self.revisar_bloque(ctx.sentencia())
@@ -361,8 +304,6 @@ class AnalizadorSemantico(LlanoVisitor):
             self.error(ctx, "'continuar' solo puede usarse dentro de un ciclo (mientras o para)")
 
     def visitProducto(self, ctx):
-        # x / 0 y x % 0 con un divisor constante se detectan sin ejecutar,
-        # aunque el dividendo dependa de variables.
         for op, factor in zip(ctx.opProd(), ctx.unario()[1:]):
             if op.getText() in "/%":
                 ok, valor = self.constante(factor)
@@ -379,7 +320,6 @@ class AnalizadorSemantico(LlanoVisitor):
                 self.error(e, f"el valor de '{parte}' debe ser un número, pero es {representar(valor)}")
             elif ok and parte == "paso" and valor == 0:
                 self.error(e, "ciclo infinito: el 'paso' no puede ser 0")
-        # Si la variable del ciclo no existe, se crea solo para el ciclo.
         nombre = ctx.ID().getText()
         anterior = self.actual
         self.actual = Ambito(anterior, "para")
@@ -401,7 +341,6 @@ class AnalizadorSemantico(LlanoVisitor):
             self.error(ctx, "'retornar' solo puede usarse dentro de una función")
         self.visit(ctx.expresion())
 
-    # -- expresiones --------------------------------------------------
 
     def visitIdentificador(self, ctx):
         nombre = ctx.ID().getText()
@@ -418,7 +357,7 @@ class AnalizadorSemantico(LlanoVisitor):
             if simbolo is not None and simbolo.clase in ("funcion", "nativa"):
                 self.revisar_aridad(simbolo, hijos[0])
             elif simbolo is not None and simbolo.clase == "variable":
-                pass  # puede guardar una función: se revisa al ejecutar
+                pass
         for h in hijos:
             self.visit(h)
 
@@ -436,8 +375,6 @@ class AnalizadorSemantico(LlanoVisitor):
 
 
 def analizar_semantica(arbol, nombres_previos=None, advertencias=None):
-    """Lanza ErroresLlano si encuentra errores; si no, devuelve los símbolos
-    globales. Si se pasa una lista en 'advertencias', se le agregan."""
     analizador = AnalizadorSemantico(nombres_previos)
     analizador.visit(arbol)
     if advertencias is not None:

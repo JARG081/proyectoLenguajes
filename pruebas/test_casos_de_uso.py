@@ -1,5 +1,3 @@
-"""Ejecuta los casos de uso de punta a punta dentro de unittest."""
-
 import os
 import sys
 import unittest

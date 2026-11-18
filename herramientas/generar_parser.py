@@ -1,11 +1,3 @@
-"""Regenera el analizador léxico y sintáctico a partir de gramatica/Llano.g4.
-
-Solo hace falta después de modificar la gramática. Requiere Java 11 o
-superior. Uso, desde la carpeta del proyecto:
-
-    python herramientas/generar_parser.py
-"""
-
 import os
 import shutil
 import subprocess

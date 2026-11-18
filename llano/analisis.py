@@ -1,11 +1,3 @@
-"""Fases de análisis: léxica (tokens) y sintáctica (árbol de derivación).
-
-El analizador léxico y el sintáctico los genera ANTLR a partir de
-gramatica/Llano.g4. Este módulo los conecta, cambia los mensajes de
-error por mensajes en español y ofrece utilidades para mostrar los
-tokens y el árbol (opciones --tokens y --arbol).
-"""
-
 from antlr4 import CommonTokenStream, InputStream, Token
 from antlr4.tree.Tree import TerminalNode
 
@@ -27,7 +19,6 @@ class ResultadoAnalisis:
 
 
 def analizar_lexico(fuente):
-    """Devuelve la lista de tokens (sin EOF) o lanza ErroresLlano."""
     lexer = LlanoLexer(InputStream(fuente))
     recolector = RecolectorErrores("lexico")
     lexer.removeErrorListeners()
@@ -42,7 +33,7 @@ def analizar_lexico(fuente):
             repetido = (anterior is not None and anterior.text == tok.text
                         and anterior.line == tok.line)
             anterior = tok
-            if repetido:            # '&&', 'hola': un solo error por carácter y línea
+            if repetido:
                 continue
             if tok.text == '"':
                 mensaje = "texto sin cerrar: falta la comilla \" de cierre en esta línea"
@@ -57,7 +48,6 @@ def analizar_lexico(fuente):
 
 
 def analizar(fuente):
-    """Análisis léxico + sintáctico. Devuelve un ResultadoAnalisis."""
     flujo = analizar_lexico(fuente)
     flujo.seek(0)
     parser = LlanoParser(flujo)
@@ -87,7 +77,6 @@ CLAVES = sorted(PALABRAS_RESERVADAS)
 
 
 def pista_contextual(tokens, tok):
-    """Pista según los tokens alrededor de un error de sintaxis."""
     if tok is None:
         return None
     visibles = [t for t in tokens if t.channel == 0]
@@ -103,7 +92,6 @@ def pista_contextual(tokens, tok):
         return "para comparar dos valores se usa '=='"
     if tok.type == LlanoLexer.POR and previo is not None and previo.type == LlanoLexer.POR:
         return "para la potencia se usa '^'"
-    #linea empieza con una palabra clave mal escrita?
     linea = [t for t in visibles if t.line == tok.line]
     for t in linea[:1] + ([previo] if previo is not None else []):
         if t.type != LlanoLexer.ID:
@@ -120,9 +108,6 @@ APERTURAS = {LlanoLexer.SI, LlanoLexer.MIENTRAS, LlanoLexer.PARA, LlanoLexer.FUN
 
 
 def bloque_sin_cerrar(tokens):
-    """Busca el bloque que quedó abierto usando una pila, como un autómata
-    de pila que empareja cada 'si', 'mientras', 'para' o 'funcion' con su
-    'fin'. En 'sino si' el 'si' no abre un bloque nuevo."""
     pila = []
     anterior = None
     for t in tokens:
@@ -141,7 +126,6 @@ def nombre_tipo_token(tipo):
 
 
 def tabla_tokens(fuente):
-    """Tabla de texto con línea:columna, tipo y lexema de cada token."""
     flujo = analizar_lexico(fuente)
     filas = [("POSICIÓN", "TOKEN", "LEXEMA")]
     for t in flujo.tokens:
@@ -166,9 +150,6 @@ def _etiqueta(nodo, parser, compacto):
 
 
 def _hijos(nodo, compacto):
-    """Hijos de un nodo. En modo compacto se saltan las cadenas de reglas
-    con un solo hijo (por ejemplo disyuncion -> conjuncion -> ... -> primario),
-    que solo existen para codificar la precedencia."""
     hijos = [nodo.getChild(i) for i in range(nodo.getChildCount())]
     if not compacto:
         return hijos
@@ -182,7 +163,6 @@ def _hijos(nodo, compacto):
 
 
 def arbol_texto(resultado, compacto=True):
-    """Árbol de derivación con sangría, al estilo del comando tree."""
     parser = resultado.parser
     lineas = []
 
@@ -208,7 +188,6 @@ def arbol_texto(resultado, compacto=True):
 
 
 def arbol_dot(resultado, compacto=True):
-    """Árbol en formato DOT de Graphviz (se puede ver en https://dreampuf.github.io/GraphvizOnline)."""
     parser = resultado.parser
     lineas = ["digraph arbol {", '  node [fontname="Helvetica", fontsize=11];']
     contador = [0]

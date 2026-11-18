@@ -1,16 +1,3 @@
-"""Casos de uso de Llano, probados de punta a punta.
-
-Cada caso ejecuta la línea de comandos real (python llano.py ...) como lo
-haría un usuario: con su archivo, su entrada por teclado y sus opciones.
-Luego compara la salida, el código de salida y verifica que nunca
-aparezca una traza interna de Python.
-
-Uso, desde la carpeta del proyecto:
-
-    python pruebas/casos_de_uso.py            ejecuta todo y escribe casos_de_uso/RESULTADOS.md
-    python pruebas/casos_de_uso.py -v         además muestra la salida de cada caso
-"""
-
 import datetime
 import os
 import platform
@@ -25,8 +12,6 @@ LLANO = os.path.join(RAIZ, "llano.py")
 
 def caso(id, nombre, args=None, codigo=None, entrada="", esperado=(), salida=0, preparar=None,
          admite_errores=False):
-    """admite_errores: el caso termina bien (salida 0) aunque muestre errores,
-    como el modo interactivo, que informa un error y sigue funcionando."""
     return {"id": id, "nombre": nombre, "args": args or [], "codigo": codigo, "entrada": entrada,
             "esperado": list(esperado), "salida": salida, "preparar": preparar,
             "admite_errores": admite_errores}
@@ -36,9 +21,6 @@ def cu(nombre_archivo):
     return [os.path.join("casos_de_uso", nombre_archivo)]
 
 
-# ---------------------------------------------------------------------
-#  1. Casos de uso: programas completos que escribiría un estudiante
-# ---------------------------------------------------------------------
 PROGRAMAS = [
     caso("CU01", "Saludo personalizado (leer un dato)", cu("cu01_saludo.llano"), entrada="Ana\n",
          esperado=["Hola, Ana. Bienvenido a Llano.", "Tu nombre tiene 3 letras."]),
@@ -81,7 +63,6 @@ PROGRAMAS = [
          esperado=["255 -> 11111111", "101101 -> 45", "Ida y vuelta 2026: 2026"]),
 ]
 
-# Los ejemplos del proyecto también deben seguir funcionando
 EJEMPLOS = [
     caso("EJ01", "Ejemplo: hola mundo", ["ejemplos/01_hola.llano"], esperado=["¡Hola, mundo!"]),
     caso("EJ05", "Ejemplo: funciones y recursión", ["ejemplos/05_funciones.llano"],
@@ -100,9 +81,6 @@ EJEMPLOS = [
          esperado=["56", "[1, 3, 5, 7, 9]", "Posición de 30: 2", "10 / 0 = nulo", "log2(1024) = 10"]),
 ]
 
-# ---------------------------------------------------------------------
-#  2. Errores típicos de un principiante: el mensaje debe orientar
-# ---------------------------------------------------------------------
 ERRORES = [
     caso("E01", "Usar = para comparar", codigo="variable x = 5\nsi x = 5 entonces imprimir(1) fin",
          esperado=["Error de sintaxis en la línea 2", "para comparar dos valores se usa '=='"], salida=1),
@@ -145,9 +123,6 @@ ERRORES = [
          salida=1),
 ]
 
-# ---------------------------------------------------------------------
-#  3. Salidas de los ciclos y restricciones lógicas y matemáticas
-# ---------------------------------------------------------------------
 
 CICLOS_Y_RESTRICCIONES = [
     caso("C01", "'romper' sale de un ciclo 'mientras verdadero'",
@@ -202,10 +177,6 @@ CICLOS_Y_RESTRICCIONES = [
     caso("C19", "Nunca se muestra un error de Python", codigo="variable x = 10 ^ 400\nimprimir(x * 0.5)",
          esperado=["Error de ejecución", "demasiado grande"], salida=1),
 ]
-
-# ---------------------------------------------------------------------
-#  4. Línea de comandos y entorno
-# ---------------------------------------------------------------------
 
 
 def _crear_crlf_bom(carpeta):
@@ -271,7 +242,6 @@ GRUPOS = [
 
 
 def ejecutar_caso(c):
-    """Ejecuta un caso y devuelve (paso, detalle, salida_completa, segundos)."""
     with tempfile.TemporaryDirectory() as tmp:
         args = list(c["args"])
         cwd = RAIZ

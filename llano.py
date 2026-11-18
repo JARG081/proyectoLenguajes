@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""Línea de comandos de Llano.
-
-    python llano.py programa.llano            ejecuta un programa
-    python llano.py programa.llano --tokens   muestra los tokens (análisis léxico)
-    python llano.py programa.llano --arbol    muestra el árbol de derivación
-    python llano.py programa.llano --dot      árbol en formato Graphviz DOT
-    python llano.py programa.llano --verificar  solo analiza, no ejecuta
-    python llano.py -e 'imprimir(2 + 3)'      ejecuta código escrito en la línea
-    python llano.py                           modo interactivo
-    python llano.py --funciones               lista las funciones predefinidas
-    python llano.py prog.llano --max-iteraciones 5000   cambia el límite de
-                                              repeticiones de un ciclo (0 = sin límite)
-"""
-
 import argparse
 import sys
 
@@ -51,8 +37,6 @@ def _mostrar_advertencias(advertencias, fuente):
 
 
 def _error_interno(e, args):
-    """Último recurso: un fallo que no se convirtió en un error de Llano.
-    Se informa en español; la traza de Python solo con --depurar."""
     if getattr(args, "depurar", False):
         import traceback
         traceback.print_exception(e)
@@ -127,7 +111,7 @@ def _interactivo(args):
                 break
             except ErroresLlano as e:
                 if all(getattr(x, "al_final", False) for x in e.errores):
-                    try:                          # bloque incompleto: pedir más líneas
+                    try:
                         fuente += "\n" + input("  ... ")
                         continue
                     except (EOFError, KeyboardInterrupt):
@@ -141,7 +125,7 @@ def _interactivo(args):
             except KeyboardInterrupt:
                 print("\nEjecución interrumpida.")
                 break
-            except Exception as e:  # el modo interactivo nunca se cierra por un error
+            except Exception as e:
                 _error_interno(e, args)
                 break
 

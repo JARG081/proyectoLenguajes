@@ -1,20 +1,9 @@
-"""Valores de Llano, conversión a texto y funciones predefinidas.
-
-Tipos del lenguaje y su representación en Python:
-
-    número  -> int o float        texto  -> str
-    lógico  -> bool               nulo   -> None
-    lista   -> list               función -> Funcion o Nativa
-"""
-
 import math
 import random
 from decimal import ROUND_HALF_UP, Decimal
 
 
 class Funcion:
-    """Función definida por el usuario (guarda el entorno donde se creó)."""
-
     def __init__(self, nombre, parametros, cuerpo, cierre):
         self.nombre = nombre
         self.parametros = parametros
@@ -30,8 +19,6 @@ class Funcion:
 
 
 class Nativa:
-    """Función predefinida del lenguaje, implementada en Python."""
-
     def __init__(self, nombre, implementacion, minimo, maximo, descripcion):
         self.nombre = nombre
         self.implementacion = implementacion
@@ -44,12 +31,8 @@ class Nativa:
 
 
 class FalloNativo(Exception):
-    """Lo lanza una función predefinida; el intérprete le agrega la posición."""
+    pass
 
-
-# ---------------------------------------------------------------------
-#  Tipos
-# ---------------------------------------------------------------------
 
 def es_numero(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
@@ -77,15 +60,10 @@ def nombre_tipo(v):
 
 
 def normalizar(n):
-    """Deja los números enteros como int (2.0 -> 2) para mostrarlos limpios."""
     if isinstance(n, float) and n.is_integer() and abs(n) < 2 ** 53:
         return int(n)
     return n
 
-
-# ---------------------------------------------------------------------
-#  Conversión a texto
-# ---------------------------------------------------------------------
 
 def a_texto(v):
     """Texto que muestra imprimir()."""
@@ -95,7 +73,6 @@ def a_texto(v):
 
 
 def representar(v):
-    """Representación de un valor dentro de una lista o en el modo interactivo."""
     if v is None:
         return "nulo"
     if isinstance(v, bool):
@@ -116,7 +93,6 @@ def representar(v):
 
 
 def iguales(a, b):
-    """Igualdad del lenguaje: valores de tipos distintos nunca son iguales."""
     if es_numero(a) and es_numero(b):
         return a == b
     if nombre_tipo(a) != nombre_tipo(b):
@@ -127,10 +103,6 @@ def iguales(a, b):
         return a is b
     return a == b
 
-
-# ---------------------------------------------------------------------
-#  Funciones predefinidas
-# ---------------------------------------------------------------------
 
 def _requiere(cond, mensaje):
     if not cond:
@@ -208,7 +180,7 @@ def _raiz(x):
     _requiere(es_numero(x), f"raiz() necesita un número, pero recibió {nombre_tipo(x)}")
     _requiere(x >= 0, "no existe la raíz cuadrada real de un número negativo")
     if isinstance(x, int):
-        r = math.isqrt(x)                 # exacta para enteros de cualquier tamaño
+        r = math.isqrt(x)
         if r * r == x:
             return r
     try:
@@ -237,7 +209,7 @@ def _redondear(x, decimales=0):
     _requiere(es_entero(decimales), "la cantidad de decimales debe ser un número entero")
     _requiere(-15 <= decimales <= 15, "la cantidad de decimales debe estar entre -15 y 15")
     _requiere(not isinstance(x, float) or math.isfinite(x), "redondear() necesita un número finito")
-    # Redondeo escolar: 2.5 -> 3 y -2.5 -> -3 (round() de Python daría 2)
+    # redondeo escolar: 2.5 -> 3
     paso = Decimal(1).scaleb(-int(decimales))
     redondeado = Decimal(str(x)).quantize(paso, rounding=ROUND_HALF_UP)
     return normalizar(int(redondeado) if int(decimales) <= 0 else float(redondeado))
@@ -250,8 +222,6 @@ def _aleatorio(minimo, maximo):
 
 
 def crear_nativas(salida, entrada):
-    """Crea las funciones predefinidas usando las funciones de E/S dadas."""
-
     def _imprimir(*valores):
         salida(" ".join(a_texto(v) for v in valores))
         return None
@@ -283,6 +253,5 @@ def crear_nativas(salida, entrada):
     return {nombre: Nativa(nombre, f, mi, ma, d) for nombre, f, mi, ma, d in tabla}
 
 
-# Nombres y aridades, para el análisis semántico (no necesita E/S).
 NATIVAS = {n.nombre: (n.minimo, n.maximo)
            for n in crear_nativas(lambda _: None, lambda _: "").values()}

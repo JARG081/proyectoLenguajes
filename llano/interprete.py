@@ -1,9 +1,3 @@
-"""Intérprete de Llano: ejecuta el árbol de derivación.
-
-Es un intérprete de recorrido de árbol (tree-walking): cada método
-visitX da el significado (semántica) de la regla X de la gramática.
-"""
-
 import math
 import operator
 
@@ -16,14 +10,12 @@ from .valores import (FalloNativo, Funcion, Nativa, a_texto, crear_nativas, es_e
 MAX_EXPONENTE = 10_000
 MAX_PROFUNDIDAD = 3000
 MAX_TEXTO = 10_000_000
-MAX_ITERACIONES = 1_000_000       # repeticiones de un ciclo (0 = sin límite)
+MAX_ITERACIONES = 1_000_000       # 0 = sin límite
 MAX_CIFRAS = 1_000_000            # cifras de un número entero
-MAX_BITS = int(MAX_CIFRAS * 3.33)  # lo mismo medido en bits (barato de revisar)
+MAX_BITS = int(MAX_CIFRAS * 3.33)
 
 
 class Retorno(Exception):
-    """Se usa para salir de una función con 'retornar'."""
-
     def __init__(self, valor):
         super().__init__()
         self.valor = valor
@@ -34,16 +26,13 @@ class Romper(Exception):
 
 
 class Continuar(Exception):
-    """Se usa para saltar a la siguiente repetición con 'continuar'."""
+    pass
 
 
-# Excepciones que son parte del lenguaje (no son errores de Python).
 CONTROL = (ErrorLlano, Retorno, Romper, Continuar, KeyboardInterrupt)
 
 
 class Entorno:
-    """Tabla de variables en tiempo de ejecución, encadenada a su entorno padre."""
-
     def __init__(self, padre=None):
         self.valores = {}
         self.padre = padre
@@ -64,7 +53,6 @@ class Entorno:
 
 
 def _describir(v):
-    """Describe un valor para los mensajes: 'un número (5)', 'una lista', 'nulo'."""
     if v is None:
         return "nulo"
     if isinstance(v, list):
@@ -79,7 +67,6 @@ P = LlanoParser
 
 
 def _paso_directo(ctx):
-    """Si el nodo solo reenvía a un hijo (no aporta significado), devuelve ese hijo."""
     t = type(ctx)
     if t is P.ExpresionContext or t is P.SentenciaContext or t is P.AgrupacionContext:
         return ctx.getChild(0) if t is P.SentenciaContext else ctx.expresion() if t is P.AgrupacionContext else ctx.disyuncion()
@@ -107,13 +94,8 @@ class Interprete(LlanoVisitor):
         self._atajos = {}
         self._bloques = {}
 
-    # -- atajos en el recorrido -----------------------------------------
 
     def visit(self, ctx):
-        """Las reglas de precedencia forman cadenas de nodos con un solo hijo
-        (expresion -> disyuncion -> ... -> primario). El significado no cambia
-        al saltarlas, así que cada nodo se resuelve una vez a su destino real
-        y se guarda: el programa corre varias veces más rápido."""
         try:
             metodo, destino = self._atajos[ctx]
         except KeyError:
@@ -127,11 +109,8 @@ class Interprete(LlanoVisitor):
             self._atajos[ctx] = (metodo, destino)
         return metodo(destino)
 
-    # -- utilidades ---------------------------------------------------
 
     def cancelar(self):
-        """Pide detener la ejecución (Ctrl+C). Se revisa en cada repetición
-        de un ciclo y en cada llamada a función."""
         self.cancelado = True
 
     def revisar_cancelacion(self, ctx):
@@ -140,9 +119,6 @@ class Interprete(LlanoVisitor):
             raise self.error(ctx, "ejecución interrumpida por el usuario")
 
     def contar_repeticion(self, ctx, n, palabra):
-        """Salvaguarda contra ciclos infinitos: un ciclo no puede repetirse
-        más de max_iteraciones veces. (Decidir en general si un ciclo termina
-        es imposible: es el problema de la parada.)"""
         self.revisar_cancelacion(ctx)
         if self.max_iteraciones and n > self.max_iteraciones:
             limite = f"{self.max_iteraciones:,}".replace(",", ".")
@@ -152,8 +128,6 @@ class Interprete(LlanoVisitor):
                                   f"--max-iteraciones)")
 
     def numero(self, ctx, n):
-        """Restricciones matemáticas sobre el resultado de una operación:
-        debe ser un número finito y de un tamaño razonable."""
         if isinstance(n, float):
             if math.isnan(n):
                 raise self.error(ctx, "el resultado no es un número (operación indeterminada)")
@@ -179,8 +153,6 @@ class Interprete(LlanoVisitor):
         return valor
 
     def ejecutar_bloque(self, bloque, entorno=None):
-        """Ejecuta un bloque. Cada bloque de si/mientras/para tiene su propio
-        ámbito: lo que se declara dentro no existe afuera."""
         anterior = self.entorno
         self.entorno = entorno if entorno is not None else Entorno(anterior)
         try:
@@ -189,8 +161,6 @@ class Interprete(LlanoVisitor):
             self.entorno = anterior
 
     def ejecutar_sentencias(self, sentencias):
-        """Primero define las funciones del bloque (elevación) y luego ejecuta
-        el resto de sentencias en orden. Devuelve el valor de la última."""
         clave = sentencias[0] if sentencias else None
         partes = self._bloques.get(clave)
         if partes is None:
@@ -207,12 +177,9 @@ class Interprete(LlanoVisitor):
             except CONTROL:
                 raise
             except Exception as e:  # noqa: BLE001 - se traduce a un error de Llano
-                # Un fallo de Python que el intérprete no previó: se informa
-                # en español, en la instrucción donde ocurrió.
                 raise self.error(s, mensaje_de_excepcion(e)) from e
         return ultimo
 
-    # -- programa y sentencias ---------------------------------------
 
     def visitPrograma(self, ctx):
         return self.ejecutar_sentencias(ctx.sentencia())
@@ -289,9 +256,8 @@ class Interprete(LlanoVisitor):
             if paso == 0:
                 raise self.error(exprs[2], "el 'paso' no puede ser 0 (el ciclo no terminaría)")
         else:
-            paso = 1      # para contar hacia atrás se escribe: paso -1
+            paso = 1  # paso -1 cuenta hacia atrás
 
-        # Si la variable del ciclo no existe, se crea solo para el ciclo.
         nombre = ctx.ID().getText()
         ciclo = Entorno(self.entorno)
         destino = self.entorno.buscar_entorno(nombre)
@@ -307,7 +273,7 @@ class Interprete(LlanoVisitor):
             except Romper:
                 break
             except Continuar:
-                pass            # 'continuar' también avanza la variable del ciclo
+                pass
             i += paso
         return None
 
@@ -326,7 +292,6 @@ class Interprete(LlanoVisitor):
     def visitContinuar(self, ctx):
         raise Continuar()
 
-    # -- expresiones: operadores lógicos -------------------------------
 
     def visitExpresion(self, ctx):
         return self.visit(ctx.disyuncion())
@@ -361,7 +326,6 @@ class Interprete(LlanoVisitor):
                                   f"(verdadero o falso), pero recibió {_describir(v)}")
         return v
 
-    # -- expresiones: comparación y aritmética --------------------------
 
     COMPARADORES = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
 
@@ -409,7 +373,6 @@ class Interprete(LlanoVisitor):
 
     def multiplicar(self, ctx, op, a, b):
         if op == "*":
-            # Potencia de una cadena: "ab" * 3 = "ababab" (Unidad 1)
             if isinstance(a, str) and es_entero(b) or isinstance(b, str) and es_entero(a):
                 texto, n = (a, int(b)) if isinstance(a, str) else (b, int(a))
                 if n < 0:
@@ -467,7 +430,6 @@ class Interprete(LlanoVisitor):
                                         "(desbordamiento)")
         return self.numero(ctx.POT(), resultado)
 
-    # -- llamadas e índices -------------------------------------------
 
     def visitPostfijo(self, ctx):
         valor = self.visit(ctx.primario())
@@ -525,7 +487,6 @@ class Interprete(LlanoVisitor):
         finally:
             self.profundidad -= 1
 
-    # -- valores primarios --------------------------------------------
 
     def visitNumero(self, ctx):
         texto = ctx.getText()

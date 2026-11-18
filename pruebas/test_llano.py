@@ -1,8 +1,3 @@
-"""Pruebas de Llano. Ejecutar desde la carpeta del proyecto con:
-
-    python -m unittest discover -s pruebas -v
-"""
-
 import os
 import sys
 import unittest
@@ -16,7 +11,6 @@ from llano.generado.LlanoLexer import LlanoLexer  # noqa: E402
 
 
 def correr(codigo, entradas=()):
-    """Ejecuta código y devuelve las líneas impresas."""
     salida = []
     pendientes = list(entradas)
     ejecutar(codigo, salida=salida.append, entrada=lambda _: pendientes.pop(0))
@@ -24,7 +18,6 @@ def correr(codigo, entradas=()):
 
 
 def error_de(codigo):
-    """Devuelve (fase, mensaje, línea) del primer error del programa."""
     try:
         correr(codigo)
     except ErroresLlano as e:
@@ -66,7 +59,6 @@ class PruebasLexico(unittest.TestCase):
 
 class PruebasSintaxis(unittest.TestCase):
     def test_precedencia_en_el_arbol(self):
-        # 2 + 3 * 4: la multiplicación queda más abajo en el árbol (se hace primero)
         arbol = arbol_texto(analizar("variable x = 2 + 3 * 4"))
         self.assertLess(arbol.index("suma"), arbol.index("producto"))
 
@@ -149,7 +141,6 @@ class PruebasEjecucion(unittest.TestCase):
                          ["verdadero verdadero falso verdadero"])
 
     def test_cortocircuito(self):
-        # si 'o' evaluara la derecha, la división por cero produciría un error
         self.assertEqual(correr("imprimir(verdadero o 1 / 0 == 1)"), ["verdadero"])
 
     def test_ciclos(self):
@@ -192,7 +183,6 @@ class PruebasEjecucion(unittest.TestCase):
         self.assertEqual(correr("variable n = numero(leer())\nimprimir(n * 2)", ["21"]), ["42"])
 
     def test_errores_de_ejecucion(self):
-        # Con variables, los valores solo se conocen al ejecutar.
         casos = {
             "variable c = 0\nimprimir(1 / c)": "división por cero",
             "variable c = 1\nsi c entonces fin": "debe ser verdadero o falso",
@@ -210,9 +200,6 @@ class PruebasEjecucion(unittest.TestCase):
 
 
 class PruebasCiclosYRestricciones(unittest.TestCase):
-    """Salidas de los ciclos, protección contra ciclos infinitos y
-    restricciones lógicas y matemáticas."""
-
     def test_romper(self):
         codigo = "variable n = 0\nmientras verdadero hacer\n n = n + 1\n si n == 4 entonces romper fin\nfin\nimprimir(n)"
         self.assertEqual(correr(codigo), ["4"])
@@ -345,8 +332,6 @@ def correr_con_limite(codigo, limite):
 
 
 class PruebasPistas(unittest.TestCase):
-    """Los mensajes de error orientan al principiante (regresión de las pruebas de uso)."""
-
     def test_pistas(self):
         casos = {
             "variable x = 5\nsi x = 5 entonces fin": "se usa '=='",
@@ -398,8 +383,6 @@ class PruebasCasosLimite(unittest.TestCase):
 
 
 class PruebasEjemplos(unittest.TestCase):
-    """Todos los ejemplos se ejecutan sin errores y dan los resultados esperados."""
-
     CARPETA = os.path.join(RAIZ, "ejemplos")
 
     def correr_ejemplo(self, nombre, entradas=()):

@@ -1,10 +1,3 @@
-"""Errores de Llano y su presentación en español.
-
-Cada error indica la fase en la que se detectó (léxica, sintáctica,
-semántica o de ejecución), la línea y la columna, y se muestra con la
-línea de código y una marca bajo la posición del problema.
-"""
-
 import re
 
 from antlr4.error.ErrorListener import ErrorListener
@@ -19,16 +12,14 @@ FASES = {
 
 
 class ErrorLlano(Exception):
-    """Un error con posición en el código fuente (línea desde 1, columna desde 0)."""
-
     def __init__(self, fase, mensaje, linea=None, columna=None):
         super().__init__(mensaje)
         self.fase = fase
         self.mensaje = mensaje
         self.linea = linea
         self.columna = columna
-        self.al_final = False   # True si el error ocurrió al llegar al final del texto
-        self.token = None       # token que causó el error de sintaxis (si se conoce)
+        self.al_final = False   # error al final del texto
+        self.token = None
 
     def formatear(self, fuente=None):
         titulo = FASES.get(self.fase, "Error")
@@ -48,8 +39,6 @@ class ErrorLlano(Exception):
 
 
 class ErroresLlano(Exception):
-    """Varios errores de una misma fase (se informan todos juntos)."""
-
     def __init__(self, errores):
         super().__init__(f"{len(errores)} error(es)")
         self.errores = list(errores)
@@ -61,17 +50,7 @@ class ErroresLlano(Exception):
         return self.formatear()
 
 
-# ---------------------------------------------------------------------
-#  Traducción de las excepciones de Python
-# ---------------------------------------------------------------------
-#  El intérprete está escrito en Python, pero el usuario de Llano nunca
-#  debe ver un error de Python (ZeroDivisionError, OverflowError, una
-#  traza, ...). Si alguna operación falla dentro de Python por un caso que
-#  el intérprete no previó, la excepción se convierte en un ErrorLlano con
-#  un mensaje en español y la posición de la instrucción que la causó.
-
 def mensaje_de_excepcion(e):
-    """Mensaje en español para una excepción de Python (sin nombres de Python)."""
     if isinstance(e, RecursionError):
         return "demasiadas llamadas anidadas (¿una recursión sin caso base?)"
     if isinstance(e, MemoryError):
@@ -93,10 +72,6 @@ def mensaje_de_excepcion(e):
         return "no se pudo leer o escribir un dato (entrada/salida)"
     return "ocurrió un error interno al ejecutar esta instrucción"
 
-
-# ---------------------------------------------------------------------
-#  Traducción de los mensajes de ANTLR
-# ---------------------------------------------------------------------
 
 PALABRAS_RESERVADAS = {
     "variable", "si", "entonces", "sino", "fin", "mientras", "hacer", "para",
@@ -141,7 +116,6 @@ def _encontrado(texto):
 
 
 def traducir_mensaje_sintactico(msg, simbolo=None):
-    """Convierte un mensaje de ANTLR en un mensaje en español."""
     m = re.match(r"mismatched input '(.*)' expecting (.*)", msg, re.S)
     if m:
         encontrado, esperado = m.group(1), _lista_esperada(m.group(2))
@@ -180,7 +154,6 @@ def _pista(token, esperado=None):
     return ""
 
 
-# Pistas para caracteres que suelen venir de otros lenguajes (C, Java, Python)
 PISTAS_CARACTERES = {
     "&": "para el 'y' lógico se escribe la palabra y",
     "|": "para el 'o' lógico se escribe la palabra o",
@@ -194,8 +167,6 @@ PISTAS_CARACTERES = {
 
 
 class RecolectorErrores(ErrorListener):
-    """Reemplaza el listener de consola de ANTLR y guarda los errores."""
-
     def __init__(self, fase):
         super().__init__()
         self.fase = fase

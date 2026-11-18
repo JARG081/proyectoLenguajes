@@ -1,3 +1,5 @@
+grammar Llano;
+//sintaxis
 programa    : sentencia* EOF ;
 
 bloque      : sentencia* ;
@@ -141,7 +143,7 @@ ID         : LETRA (LETRA | DIGITO)* ;
 COMENTARIO : '#' ~[\r\n]* -> skip ;
 ESPACIO    : [ \t\r\n]+   -> skip ;
 
-// Cualquier otro carácter es un error léxico con mensaje propio.
+// Cualquier otro carácter: error léxico
 DESCONOCIDO : . ;
 
 fragment DIGITO : [0-9] ;
